@@ -1,20 +1,26 @@
-import { Button, Card, Layout, Menu, Space, Typography } from "antd";
+import { Button, Layout, Menu, Space, Typography } from "antd";
+import { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
 import { isAdmin, isCandidate, isRecruiter } from "./utils/roles";
+import PagePlaceholder from "./components/PagePlaceholder";
 
 const { Header, Sider, Content } = Layout;
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 function getMenuItems(user) {
   const items = [
     {
       key: "dashboard",
       label: "Dashboard",
+      title: "Dashboard",
+      description: "Main overview page with statistics and latest positions.",
     },
     {
       key: "positions",
       label: "Positions",
+      title: "Positions",
+      description: "Table view of available positions.",
     },
   ];
 
@@ -23,10 +29,14 @@ function getMenuItems(user) {
       {
         key: "my-profile",
         label: "My Profile",
+        title: "My Profile",
+        description: "Candidate personal profile with attributes and projects.",
       },
       {
         key: "my-cvs",
         label: "My CVs",
+        title: "My CVs",
+        description: "Table view of CVs created by the candidate.",
       },
     );
   }
@@ -36,10 +46,14 @@ function getMenuItems(user) {
       {
         key: "attribute-library",
         label: "Attribute Library",
+        title: "Attribute Library",
+        description: "Reusable attributes managed by recruiters.",
       },
       {
         key: "cv-search",
         label: "CV Search",
+        title: "CV Search",
+        description: "Search and browse published candidate CVs.",
       },
     );
   }
@@ -49,10 +63,14 @@ function getMenuItems(user) {
       {
         key: "admin-users",
         label: "Admin Users",
+        title: "Admin Users",
+        description: "Manage users, statuses, and roles.",
       },
       {
         key: "admin-profiles",
         label: "All Profiles",
+        title: "All Profiles",
+        description: "Admin access to candidate profiles.",
       },
     );
   }
@@ -62,12 +80,15 @@ function getMenuItems(user) {
 
 export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
+  const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
   const menuItems = getMenuItems(user);
+  const selectedPage =
+    menuItems.find((item) => item.key === selectedPageKey) || menuItems[0];
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -91,30 +112,21 @@ export default function App() {
         <Sider width={240} theme="light">
           <Menu
             mode="inline"
-            defaultSelectedKeys={["dashboard"]}
-            items={menuItems}
+            selectedKeys={[selectedPage.key]}
+            onClick={({ key }) => setSelectedPageKey(key)}
+            items={menuItems.map((item) => ({
+              key: item.key,
+              label: item.label,
+            }))}
             style={{ height: "100%", borderRight: 0 }}
           />
         </Sider>
 
         <Content style={{ padding: 24 }}>
-          <Card>
-            <Space direction="vertical" size="middle">
-              <Title level={3}>Welcome, {user.name}</Title>
-
-              <Text>
-                Email: <b>{user.email}</b>
-              </Text>
-
-              <Text>
-                Roles: <b>{user.roles.join(", ")}</b>
-              </Text>
-
-              <Text type="secondary">
-                This menu is generated based on the current user role.
-              </Text>
-            </Space>
-          </Card>
+          <PagePlaceholder
+            title={selectedPage.title}
+            description={selectedPage.description}
+          />
         </Content>
       </Layout>
     </Layout>
