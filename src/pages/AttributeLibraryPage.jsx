@@ -43,6 +43,7 @@ export function AttributeLibraryPage() {
 
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const selectedType = Form.useWatch("type", form);
 
   const createAttributeMutation = useMutation({
     mutationFn: createAttribute,
@@ -85,6 +86,28 @@ export function AttributeLibraryPage() {
       key: "description",
       render: (description) =>
         description || <Text type="secondary">No description</Text>,
+    },
+    {
+      title: "Options",
+      dataIndex: "options",
+      key: "options",
+      render: (options, record) => {
+        if (record.type !== "SELECT") {
+          return <Text type="secondary">—</Text>;
+        }
+
+        if (!options || options.length === 0) {
+          return <Text type="secondary">No options</Text>;
+        }
+
+        return (
+          <Space wrap>
+            {options.map((option) => (
+              <Tag key={option.id}>{option.value}</Tag>
+            ))}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -152,6 +175,45 @@ export function AttributeLibraryPage() {
           >
             <Select placeholder="Select type" options={typeOptions} />
           </Form.Item>
+
+          {selectedType === "SELECT" && (
+            <Form.List name="options">
+              {(fields, { add, remove }) => (
+                <div>
+                  <Text strong>Dropdown Options</Text>
+
+                  {fields.map((field) => (
+                    <Space
+                      key={field.key}
+                      style={{ display: "flex", marginTop: 8 }}
+                      align="baseline"
+                    >
+                      <Form.Item
+                        {...field}
+                        name={[field.name, "value"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "Option value is required",
+                          },
+                        ]}
+                      >
+                        <Input placeholder="Example: Advanced" />
+                      </Form.Item>
+
+                      <Button danger onClick={() => remove(field.name)}>
+                        Remove
+                      </Button>
+                    </Space>
+                  ))}
+
+                  <Button style={{ marginTop: 8 }} onClick={() => add()}>
+                    Add Option
+                  </Button>
+                </div>
+              )}
+            </Form.List>
+          )}
 
           <Form.Item label="Description" name="description">
             <Input.TextArea
