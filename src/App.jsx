@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
 import { isAdmin, isCandidate, isRecruiter } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
+import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -123,10 +124,14 @@ export default function App() {
         </Sider>
 
         <Content style={{ padding: 24 }}>
-          <PagePlaceholder
-            title={selectedPage.title}
-            description={selectedPage.description}
-          />
+          {selectedPage.key === "attribute-library" ? (
+            <AttributeLibraryPage />
+          ) : (
+            <PagePlaceholder
+              title={selectedPage.title}
+              description={selectedPage.description}
+            />
+          )}
         </Content>
       </Layout>
     </Layout>
