@@ -47,6 +47,8 @@ export function AttributeLibraryPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState();
 
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -86,8 +88,12 @@ export function AttributeLibraryPage() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["attributes"],
-    queryFn: getAttributes,
+    queryKey: ["attributes", search, categoryFilter],
+    queryFn: () =>
+      getAttributes({
+        search: search || undefined,
+        category: categoryFilter,
+      }),
   });
 
   const selectedAttribute = data.find(
@@ -162,51 +168,69 @@ export function AttributeLibraryPage() {
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
           Create Attribute
         </Button>
+      </Space>
 
-        <Space style={{ marginBottom: 16 }}>
-          <Text type="secondary">Selected: {selectedAttributeIds.length}</Text>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Input.Search
+          placeholder="Search attributes by name"
+          allowClear
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          style={{ width: 280 }}
+        />
 
-          <Button
-            disabled={selectedAttributeIds.length !== 1}
-            onClick={() => {
-              if (!selectedAttribute) return;
+        <Select
+          placeholder="Filter by category"
+          allowClear
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+          options={categoryOptions}
+          style={{ width: 220 }}
+        />
+      </Space>
 
-              editForm.setFieldsValue({
-                name: selectedAttribute.name,
-                category: selectedAttribute.category,
-                type: selectedAttribute.type,
-                description: selectedAttribute.description,
-                version: selectedAttribute.version,
-                options: selectedAttribute.options?.map((option) => ({
-                  value: option.value,
-                })),
-              });
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Text type="secondary">Selected: {selectedAttributeIds.length}</Text>
 
-              setIsEditModalOpen(true);
-            }}
-          >
-            Edit Selected
-          </Button>
+        <Button
+          disabled={selectedAttributeIds.length !== 1}
+          onClick={() => {
+            if (!selectedAttribute) return;
 
-          <Button
-            danger
-            disabled={selectedAttributeIds.length === 0}
-            loading={deleteAttributesMutation.isPending}
-            onClick={() => {
-              Modal.confirm({
-                title: "Delete selected attributes?",
-                content:
-                  "This action will also delete dropdown options for selected attributes.",
-                okText: "Delete",
-                okButtonProps: { danger: true },
-                onOk: () =>
-                  deleteAttributesMutation.mutate(selectedAttributeIds),
-              });
-            }}
-          >
-            Delete Selected
-          </Button>
-        </Space>
+            editForm.setFieldsValue({
+              name: selectedAttribute.name,
+              category: selectedAttribute.category,
+              type: selectedAttribute.type,
+              description: selectedAttribute.description,
+              version: selectedAttribute.version,
+              options: selectedAttribute.options?.map((option) => ({
+                value: option.value,
+              })),
+            });
+
+            setIsEditModalOpen(true);
+          }}
+        >
+          Edit Selected
+        </Button>
+
+        <Button
+          danger
+          disabled={selectedAttributeIds.length === 0}
+          loading={deleteAttributesMutation.isPending}
+          onClick={() => {
+            Modal.confirm({
+              title: "Delete selected attributes?",
+              content:
+                "This action will also delete dropdown options for selected attributes.",
+              okText: "Delete",
+              okButtonProps: { danger: true },
+              onOk: () => deleteAttributesMutation.mutate(selectedAttributeIds),
+            });
+          }}
+        >
+          Delete Selected
+        </Button>
       </Space>
 
       <Table

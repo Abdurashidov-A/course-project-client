@@ -1,7 +1,7 @@
 import { api } from "./api";
 
-export async function getAttributes() {
-  const response = await api.get("/api/attributes");
+export async function getAttributes(params = {}) {
+  const response = await api.get("/api/attributes", { params });
 
   return response.data;
 }
