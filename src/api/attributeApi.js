@@ -11,3 +11,11 @@ export async function createAttribute(attributeData) {
 
   return response.data;
 }
+
+export async function deleteAttributes(ids) {
+  const response = await api.delete("/api/attributes", {
+    data: { ids },
+  });
+
+  return response.data;
+}

@@ -10,7 +10,11 @@ import {
   Tag,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createAttribute, getAttributes } from "../api/attributeApi";
+import {
+  createAttribute,
+  getAttributes,
+  deleteAttributes,
+} from "../api/attributeApi";
 import { useState } from "react";
 
 const { Title, Text } = Typography;
@@ -40,6 +44,7 @@ const typeOptions = [
 
 export function AttributeLibraryPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
 
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
@@ -51,6 +56,14 @@ export function AttributeLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["attributes"] });
       form.resetFields();
       setIsCreateModalOpen(false);
+    },
+  });
+
+  const deleteAttributesMutation = useMutation({
+    mutationFn: deleteAttributes,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attributes"] });
+      setSelectedAttributeIds([]);
     },
   });
 
@@ -131,6 +144,33 @@ export function AttributeLibraryPage() {
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
           Create Attribute
         </Button>
+
+        <Space style={{ marginBottom: 16 }}>
+          <Text type="secondary">Selected: {selectedAttributeIds.length}</Text>
+
+          <Button disabled={selectedAttributeIds.length !== 1}>
+            Edit Selected
+          </Button>
+
+          <Button
+            danger
+            disabled={selectedAttributeIds.length === 0}
+            loading={deleteAttributesMutation.isPending}
+            onClick={() => {
+              Modal.confirm({
+                title: "Delete selected attributes?",
+                content:
+                  "This action will also delete dropdown options for selected attributes.",
+                okText: "Delete",
+                okButtonProps: { danger: true },
+                onOk: () =>
+                  deleteAttributesMutation.mutate(selectedAttributeIds),
+              });
+            }}
+          >
+            Delete Selected
+          </Button>
+        </Space>
       </Space>
 
       <Table
@@ -139,6 +179,10 @@ export function AttributeLibraryPage() {
         columns={columns}
         dataSource={data}
         pagination={{ pageSize: 10 }}
+        rowSelection={{
+          selectedRowKeys: selectedAttributeIds,
+          onChange: setSelectedAttributeIds,
+        }}
       />
 
       <Modal
