@@ -12,8 +12,9 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAttribute,
-  getAttributes,
   deleteAttributes,
+  getAttributes,
+  updateAttribute,
 } from "../api/attributeApi";
 import { useState } from "react";
 
@@ -44,11 +45,14 @@ const typeOptions = [
 
 export function AttributeLibraryPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
 
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
   const queryClient = useQueryClient();
   const selectedType = Form.useWatch("type", form);
+  const selectedEditType = Form.useWatch("type", editForm);
 
   const createAttributeMutation = useMutation({
     mutationFn: createAttribute,
@@ -67,6 +71,16 @@ export function AttributeLibraryPage() {
     },
   });
 
+  const updateAttributeMutation = useMutation({
+    mutationFn: ({ id, values }) => updateAttribute(id, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attributes"] });
+      setIsEditModalOpen(false);
+      setSelectedAttributeIds([]);
+      editForm.resetFields();
+    },
+  });
+
   const {
     data = [],
     isLoading,
@@ -75,6 +89,10 @@ export function AttributeLibraryPage() {
     queryKey: ["attributes"],
     queryFn: getAttributes,
   });
+
+  const selectedAttribute = data.find(
+    (attribute) => attribute.id === selectedAttributeIds[0],
+  );
 
   const columns = [
     {
@@ -148,7 +166,25 @@ export function AttributeLibraryPage() {
         <Space style={{ marginBottom: 16 }}>
           <Text type="secondary">Selected: {selectedAttributeIds.length}</Text>
 
-          <Button disabled={selectedAttributeIds.length !== 1}>
+          <Button
+            disabled={selectedAttributeIds.length !== 1}
+            onClick={() => {
+              if (!selectedAttribute) return;
+
+              editForm.setFieldsValue({
+                name: selectedAttribute.name,
+                category: selectedAttribute.category,
+                type: selectedAttribute.type,
+                description: selectedAttribute.description,
+                version: selectedAttribute.version,
+                options: selectedAttribute.options?.map((option) => ({
+                  value: option.value,
+                })),
+              });
+
+              setIsEditModalOpen(true);
+            }}
+          >
             Edit Selected
           </Button>
 
@@ -274,6 +310,105 @@ export function AttributeLibraryPage() {
             Save Attribute
           </Button>
         </Form>{" "}
+      </Modal>
+
+      <Modal
+        title="Edit Attribute"
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={(values) => {
+            if (!selectedAttribute) return;
+
+            updateAttributeMutation.mutate({
+              id: selectedAttribute.id,
+              values,
+            });
+          }}
+        >
+          <Form.Item
+            label="Name"
+            name="name"
+            rules={[{ required: true, message: "Attribute name is required" }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item
+            label="Category"
+            name="category"
+            rules={[{ required: true, message: "Category is required" }]}
+          >
+            <Select options={categoryOptions} />
+          </Form.Item>
+
+          <Form.Item
+            label="Type"
+            name="type"
+            rules={[{ required: true, message: "Type is required" }]}
+          >
+            <Select options={typeOptions} />
+          </Form.Item>
+
+          {selectedEditType === "SELECT" && (
+            <Form.List name="options">
+              {(fields, { add, remove }) => (
+                <div>
+                  <Text strong>Dropdown Options</Text>
+
+                  {fields.map((field) => (
+                    <Space
+                      key={field.key}
+                      style={{ display: "flex", marginTop: 8 }}
+                      align="baseline"
+                    >
+                      <Form.Item
+                        {...field}
+                        name={[field.name, "value"]}
+                        rules={[
+                          {
+                            required: true,
+                            message: "Option value is required",
+                          },
+                        ]}
+                      >
+                        <Input placeholder="Example: Lead" />
+                      </Form.Item>
+
+                      <Button danger onClick={() => remove(field.name)}>
+                        Remove
+                      </Button>
+                    </Space>
+                  ))}
+
+                  <Button style={{ marginTop: 8 }} onClick={() => add()}>
+                    Add Option
+                  </Button>
+                </div>
+              )}
+            </Form.List>
+          )}
+
+          <Form.Item label="Description" name="description">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+
+          <Form.Item name="version" hidden>
+            <Input />
+          </Form.Item>
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={updateAttributeMutation.isPending}
+          >
+            Save Changes
+          </Button>
+        </Form>
       </Modal>
     </div>
   );

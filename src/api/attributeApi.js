@@ -19,3 +19,9 @@ export async function deleteAttributes(ids) {
 
   return response.data;
 }
+
+export async function updateAttribute(id, attributeData) {
+  const response = await api.put(`/api/attributes/${id}`, attributeData);
+
+  return response.data;
+}
