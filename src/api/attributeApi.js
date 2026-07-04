@@ -5,3 +5,9 @@ export async function getAttributes() {
 
   return response.data;
 }
+
+export async function createAttribute(attributeData) {
+  const response = await api.post("/api/attributes", attributeData);
+
+  return response.data;
+}
