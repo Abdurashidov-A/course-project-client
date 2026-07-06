@@ -1,0 +1,13 @@
+import { api } from "./api";
+
+export async function getPositions() {
+  const response = await api.get("/api/positions");
+
+  return response.data;
+}
+
+export async function createPosition(positionData) {
+  const response = await api.post("/api/positions", positionData);
+
+  return response.data;
+}
