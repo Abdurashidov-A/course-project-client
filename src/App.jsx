@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import { isAdmin, isCandidate, isRecruiter } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
 import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
+import { PositionsPage } from "./pages/PositionsPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -126,6 +127,8 @@ export default function App() {
         <Content style={{ padding: 24 }}>
           {selectedPage.key === "attribute-library" ? (
             <AttributeLibraryPage />
+          ) : selectedPage.key === "positions" ? (
+            <PositionsPage />
           ) : (
             <PagePlaceholder
               title={selectedPage.title}
