@@ -1,10 +1,38 @@
-import { Table, Tag, Typography, Space } from "antd";
-import { useQuery } from "@tanstack/react-query";
-import { getPositions } from "../api/positionApi";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createPosition, getPositions } from "../api/positionApi";
+import { getAttributes } from "../api/attributeApi";
+import { useState } from "react";
 
 const { Title, Text } = Typography;
 
 export function PositionsPage() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const [form] = Form.useForm();
+  const queryClient = useQueryClient();
+
+  const createPositionMutation = useMutation({
+    mutationFn: createPosition,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      form.resetFields();
+      setIsCreateModalOpen(false);
+    },
+  });
+
   const {
     data = [],
     isLoading,
@@ -12,6 +40,11 @@ export function PositionsPage() {
   } = useQuery({
     queryKey: ["positions"],
     queryFn: getPositions,
+  });
+
+  const { data: attributes = [], isLoading: isAttributesLoading } = useQuery({
+    queryKey: ["attributes"],
+    queryFn: getAttributes,
   });
 
   const columns = [
@@ -68,8 +101,21 @@ export function PositionsPage() {
 
   return (
     <div>
-      <Title level={2}>Positions</Title>
+      <Space
+        style={{
+          width: "100%",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
+        <Title level={2} style={{ margin: 0 }}>
+          Positions
+        </Title>
 
+        <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+          Create Position
+        </Button>
+      </Space>
       <Table
         rowKey="id"
         loading={isLoading}
@@ -77,6 +123,79 @@ export function PositionsPage() {
         dataSource={data}
         pagination={{ pageSize: 10 }}
       />
+
+      <Modal
+        title="Create Position"
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        footer={null}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => {
+            createPositionMutation.mutate({
+              title: values.title,
+              shortDescription: values.shortDescription,
+              isPublic: values.isPublic,
+              maxProjects: values.maxProjects,
+              attributes: values.attributeIds.map((attributeId) => ({
+                attributeId,
+                isRequired: false,
+              })),
+            });
+          }}
+        >
+          <Form.Item
+            label="Title"
+            name="title"
+            rules={[{ required: true, message: "Position title is required" }]}
+          >
+            <Input placeholder="Example: Frontend Developer" />
+          </Form.Item>
+          <Form.Item label="Short Description" name="shortDescription">
+            <Input.TextArea
+              rows={3}
+              placeholder="Short description for candidates"
+            />
+          </Form.Item>
+          <Form.Item
+            label="Public Position"
+            name="isPublic"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item label="Max Projects" name="maxProjects" initialValue={3}>
+            <InputNumber min={0} max={10} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="Position Attributes"
+            name="attributeIds"
+            rules={[
+              { required: true, message: "Select at least one attribute" },
+            ]}
+          >
+            <Select
+              mode="multiple"
+              loading={isAttributesLoading}
+              placeholder="Select attributes for this position"
+              options={attributes.map((attribute) => ({
+                label: `${attribute.name} (${attribute.type})`,
+                value: attribute.id,
+              }))}
+            />
+          </Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={createPositionMutation.isPending}
+          >
+            Save Position
+          </Button>
+        </Form>{" "}
+      </Modal>
     </div>
   );
 }
