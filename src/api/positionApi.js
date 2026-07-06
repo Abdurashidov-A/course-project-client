@@ -19,3 +19,9 @@ export async function deletePositions(ids) {
 
   return response.data;
 }
+
+export async function updatePosition(id, positionData) {
+  const response = await api.put(`/api/positions/${id}`, positionData);
+
+  return response.data;
+}

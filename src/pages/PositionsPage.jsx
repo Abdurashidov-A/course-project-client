@@ -16,6 +16,7 @@ import {
   createPosition,
   deletePositions,
   getPositions,
+  updatePosition,
 } from "../api/positionApi";
 import { getAttributes } from "../api/attributeApi";
 import { useState } from "react";
@@ -24,9 +25,11 @@ const { Title, Text } = Typography;
 
 export function PositionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
   const queryClient = useQueryClient();
 
   const createPositionMutation = useMutation({
@@ -46,6 +49,16 @@ export function PositionsPage() {
     },
   });
 
+  const updatePositionMutation = useMutation({
+    mutationFn: ({ id, values }) => updatePosition(id, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      setIsEditModalOpen(false);
+      setSelectedPositionIds([]);
+      editForm.resetFields();
+    },
+  });
+
   const {
     data = [],
     isLoading,
@@ -54,6 +67,10 @@ export function PositionsPage() {
     queryKey: ["positions"],
     queryFn: getPositions,
   });
+
+  const selectedPosition = data.find(
+    (position) => position.id === selectedPositionIds[0],
+  );
 
   const { data: attributes = [], isLoading: isAttributesLoading } = useQuery({
     queryKey: ["attributes"],
@@ -128,7 +145,25 @@ export function PositionsPage() {
         <Space style={{ marginBottom: 16 }} wrap>
           <Text type="secondary">Selected: {selectedPositionIds.length}</Text>
 
-          <Button disabled={selectedPositionIds.length !== 1}>
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            onClick={() => {
+              if (!selectedPosition) return;
+
+              editForm.setFieldsValue({
+                title: selectedPosition.title,
+                shortDescription: selectedPosition.shortDescription,
+                isPublic: selectedPosition.isPublic,
+                maxProjects: selectedPosition.maxProjects,
+                version: selectedPosition.version,
+                attributeIds: selectedPosition.attributes.map(
+                  (item) => item.attributeId,
+                ),
+              });
+
+              setIsEditModalOpen(true);
+            }}
+          >
             Edit Selected
           </Button>
 
@@ -237,6 +272,109 @@ export function PositionsPage() {
             Save Position
           </Button>
         </Form>{" "}
+      </Modal>
+
+      <Modal
+        title="Edit Position"
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={(values) => {
+            if (!selectedPosition) return;
+
+            updatePositionMutation.mutate({
+              id: selectedPosition.id,
+              values: {
+                title: values.title,
+                shortDescription: values.shortDescription,
+                isPublic: values.isPublic,
+                maxProjects: values.maxProjects,
+                version: values.version,
+                attributes: values.attributeIds.map((attributeId) => ({
+                  attributeId,
+                  isRequired: false,
+                })),
+              },
+            });
+          }}
+        >
+          <Form
+            form={editForm}
+            layout="vertical"
+            onFinish={(values) => {
+              if (!selectedPosition) return;
+
+              updatePositionMutation.mutate({
+                id: selectedPosition.id,
+                values: {
+                  title: values.title,
+                  shortDescription: values.shortDescription,
+                  isPublic: values.isPublic,
+                  maxProjects: values.maxProjects,
+                  version: values.version,
+                  attributes: values.attributeIds.map((attributeId) => ({
+                    attributeId,
+                    isRequired: false,
+                  })),
+                },
+              });
+            }}
+          ></Form>{" "}
+          <Form.Item
+            label="Title"
+            name="title"
+            rules={[{ required: true, message: "Position title is required" }]}
+          >
+            <Input placeholder="Example: Frontend Developer" />
+          </Form.Item>
+          <Form.Item label="Short Description" name="shortDescription">
+            <Input.TextArea
+              rows={3}
+              placeholder="Short description for candidates"
+            />
+          </Form.Item>
+          <Form.Item
+            label="Public Position"
+            name="isPublic"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item label="Max Projects" name="maxProjects">
+            <InputNumber min={0} max={10} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            label="Position Attributes"
+            name="attributeIds"
+            rules={[
+              { required: true, message: "Select at least one attribute" },
+            ]}
+          >
+            <Select
+              mode="multiple"
+              loading={isAttributesLoading}
+              placeholder="Select attributes for this position"
+              options={attributes.map((attribute) => ({
+                label: `${attribute.name} (${attribute.type})`,
+                value: attribute.id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item name="version" hidden>
+            <Input />
+          </Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={updatePositionMutation.isPending}
+          >
+            Save Changes
+          </Button>
+        </Form>
       </Modal>
     </div>
   );
