@@ -12,7 +12,11 @@ import {
   Typography,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPosition, getPositions } from "../api/positionApi";
+import {
+  createPosition,
+  deletePositions,
+  getPositions,
+} from "../api/positionApi";
 import { getAttributes } from "../api/attributeApi";
 import { useState } from "react";
 
@@ -20,6 +24,7 @@ const { Title, Text } = Typography;
 
 export function PositionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
@@ -30,6 +35,14 @@ export function PositionsPage() {
       queryClient.invalidateQueries({ queryKey: ["positions"] });
       form.resetFields();
       setIsCreateModalOpen(false);
+    },
+  });
+
+  const deletePositionsMutation = useMutation({
+    mutationFn: deletePositions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      setSelectedPositionIds([]);
     },
   });
 
@@ -112,6 +125,31 @@ export function PositionsPage() {
           Positions
         </Title>
 
+        <Space style={{ marginBottom: 16 }} wrap>
+          <Text type="secondary">Selected: {selectedPositionIds.length}</Text>
+
+          <Button disabled={selectedPositionIds.length !== 1}>
+            Edit Selected
+          </Button>
+
+          <Button
+            danger
+            disabled={selectedPositionIds.length === 0}
+            loading={deletePositionsMutation.isPending}
+            onClick={() => {
+              Modal.confirm({
+                title: "Delete selected positions?",
+                content: "This action will delete selected position templates.",
+                okText: "Delete",
+                okButtonProps: { danger: true },
+                onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
+              });
+            }}
+          >
+            Delete Selected
+          </Button>
+        </Space>
+
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
           Create Position
         </Button>
@@ -122,6 +160,10 @@ export function PositionsPage() {
         columns={columns}
         dataSource={data}
         pagination={{ pageSize: 10 }}
+        rowSelection={{
+          selectedRowKeys: selectedPositionIds,
+          onChange: setSelectedPositionIds,
+        }}
       />
 
       <Modal

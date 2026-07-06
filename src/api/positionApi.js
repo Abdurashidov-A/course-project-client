@@ -11,3 +11,11 @@ export async function createPosition(positionData) {
 
   return response.data;
 }
+
+export async function deletePositions(ids) {
+  const response = await api.delete("/api/positions", {
+    data: { ids },
+  });
+
+  return response.data;
+}
