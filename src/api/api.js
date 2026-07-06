@@ -6,3 +6,23 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+api.interceptors.request.use((config) => {
+  const savedUser = localStorage.getItem("cvms_user");
+
+  if (!savedUser) {
+    return config;
+  }
+
+  try {
+    const user = JSON.parse(savedUser);
+
+    if (user?.id) {
+      config.headers["x-dev-user-id"] = user.id;
+    }
+  } catch {
+    localStorage.removeItem("cvms_user");
+  }
+
+  return config;
+});

@@ -6,6 +6,7 @@ import { isAdmin, isCandidate, isRecruiter } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
 import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 import { PositionsPage } from "./pages/PositionsPage";
+import { CandidateProfilePage } from "./pages/CandidateProfilePage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -129,6 +130,8 @@ export default function App() {
             <AttributeLibraryPage />
           ) : selectedPage.key === "positions" ? (
             <PositionsPage />
+          ) : selectedPage.key === "my-profile" ? (
+            <CandidateProfilePage />
           ) : (
             <PagePlaceholder
               title={selectedPage.title}

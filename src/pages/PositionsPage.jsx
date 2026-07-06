@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   Form,
   Input,
   InputNumber,
@@ -29,7 +30,10 @@ export function PositionsPage() {
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
+  const selectedCreateAttributeIds = Form.useWatch("attributeIds", form) || [];
   const [editForm] = Form.useForm();
+  const selectedEditAttributeIds =
+    Form.useWatch("attributeIds", editForm) || [];
   const queryClient = useQueryClient();
 
   const createPositionMutation = useMutation({
@@ -117,7 +121,10 @@ export function PositionsPage() {
         return (
           <Space wrap>
             {attributes.map((item) => (
-              <Tag key={item.id}>{item.attribute.name}</Tag>
+              <Tag key={item.id}>
+                {item.attribute.name}
+                {item.isRequired ? " *" : ""}
+              </Tag>
             ))}
           </Space>
         );
@@ -159,6 +166,9 @@ export function PositionsPage() {
                 attributeIds: selectedPosition.attributes.map(
                   (item) => item.attributeId,
                 ),
+                requiredAttributeIds: selectedPosition.attributes
+                  .filter((item) => item.isRequired)
+                  .map((item) => item.attributeId),
               });
 
               setIsEditModalOpen(true);
@@ -218,7 +228,8 @@ export function PositionsPage() {
               maxProjects: values.maxProjects,
               attributes: values.attributeIds.map((attributeId) => ({
                 attributeId,
-                isRequired: false,
+                isRequired:
+                  values.requiredAttributeIds?.includes(attributeId) || false,
               })),
             });
           }}
@@ -264,6 +275,20 @@ export function PositionsPage() {
               }))}
             />
           </Form.Item>
+          {selectedCreateAttributeIds.length > 0 && (
+            <Form.Item label="Required Attributes" name="requiredAttributeIds">
+              <Checkbox.Group
+                options={attributes
+                  .filter((attribute) =>
+                    selectedCreateAttributeIds.includes(attribute.id),
+                  )
+                  .map((attribute) => ({
+                    label: attribute.name,
+                    value: attribute.id,
+                  }))}
+              />
+            </Form.Item>
+          )}
           <Button
             type="primary"
             htmlType="submit"
@@ -296,34 +321,13 @@ export function PositionsPage() {
                 version: values.version,
                 attributes: values.attributeIds.map((attributeId) => ({
                   attributeId,
-                  isRequired: false,
+                  isRequired:
+                    values.requiredAttributeIds?.includes(attributeId) || false,
                 })),
               },
             });
           }}
         >
-          <Form
-            form={editForm}
-            layout="vertical"
-            onFinish={(values) => {
-              if (!selectedPosition) return;
-
-              updatePositionMutation.mutate({
-                id: selectedPosition.id,
-                values: {
-                  title: values.title,
-                  shortDescription: values.shortDescription,
-                  isPublic: values.isPublic,
-                  maxProjects: values.maxProjects,
-                  version: values.version,
-                  attributes: values.attributeIds.map((attributeId) => ({
-                    attributeId,
-                    isRequired: false,
-                  })),
-                },
-              });
-            }}
-          ></Form>{" "}
           <Form.Item
             label="Title"
             name="title"
@@ -364,6 +368,20 @@ export function PositionsPage() {
               }))}
             />
           </Form.Item>
+          {selectedEditAttributeIds.length > 0 && (
+            <Form.Item label="Required Attributes" name="requiredAttributeIds">
+              <Checkbox.Group
+                options={attributes
+                  .filter((attribute) =>
+                    selectedEditAttributeIds.includes(attribute.id),
+                  )
+                  .map((attribute) => ({
+                    label: attribute.name,
+                    value: attribute.id,
+                  }))}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="version" hidden>
             <Input />
           </Form.Item>
