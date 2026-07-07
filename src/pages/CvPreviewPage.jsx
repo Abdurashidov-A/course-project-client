@@ -18,7 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { getCvById } from "../api/cvApi";
+import { getCvById, publishCv } from "../api/cvApi";
 import { saveProfileAttribute } from "../api/profileAttributeApi";
 
 const { Title, Text } = Typography;
@@ -197,6 +197,7 @@ function renderValueInput(attribute) {
 export function CvPreviewPage({ cvId, onBack }) {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [missingPublishAttributes, setMissingPublishAttributes] = useState([]);
   const [form] = Form.useForm();
   const {
     data,
@@ -219,6 +220,7 @@ export function CvPreviewPage({ cvId, onBack }) {
       saveProfileAttribute(attributeId, payload),
     onSuccess: async () => {
       message.success("Profile attribute saved");
+      setMissingPublishAttributes([]);
       setIsModalOpen(false);
       setSelectedRowKeys([]);
       form.resetFields();
@@ -233,6 +235,32 @@ export function CvPreviewPage({ cvId, onBack }) {
       }
 
       message.error("Failed to save profile attribute");
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: ({ id, version }) => publishCv(id, version),
+    onSuccess: async () => {
+      message.success("CV published successfully");
+      setMissingPublishAttributes([]);
+      await refetch();
+    },
+    onError: (error) => {
+      if (error.response?.status === 400) {
+        const missingAttributes = error.response?.data?.missingAttributes || [];
+        setMissingPublishAttributes(missingAttributes);
+        message.warning("Cannot publish CV while some attributes are missing");
+        return;
+      }
+
+      if (error.response?.status === 409) {
+        message.warning(
+          "CV was changed elsewhere. Please reload and try again.",
+        );
+        return;
+      }
+
+      message.error("Failed to publish CV");
     },
   });
 
@@ -323,6 +351,17 @@ export function CvPreviewPage({ cvId, onBack }) {
     });
   }
 
+  function handlePublish() {
+    if (!data?.id || typeof data?.version !== "number") {
+      return;
+    }
+
+    publishMutation.mutate({
+      id: data.id,
+      version: data.version,
+    });
+  }
+
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
       <Button onClick={onBack} style={{ width: "fit-content" }}>
@@ -341,7 +380,26 @@ export function CvPreviewPage({ cvId, onBack }) {
       <Space wrap>
         <Tag color="blue">Status: {data?.status || "—"}</Tag>
         <Tag>Version: {data?.version ?? "—"}</Tag>
+        <Button
+          type="primary"
+          disabled={data?.status === "PUBLISHED"}
+          loading={publishMutation.isPending}
+          onClick={handlePublish}
+        >
+          {data?.status === "PUBLISHED" ? "Published" : "Publish"}
+        </Button>
       </Space>
+
+      {missingPublishAttributes.length > 0 ? (
+        <Alert
+          type="warning"
+          message="Cannot publish CV while some attributes are missing"
+          description={missingPublishAttributes
+            .map((attribute) => attribute.name)
+            .join(", ")}
+          showIcon
+        />
+      ) : null}
 
       <Space wrap>
         <Text type="secondary">Selected: {selectedRowKeys.length}</Text>
