@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Form,
   Input,
@@ -17,6 +18,7 @@ import {
   updateAttribute,
 } from "../api/attributeApi";
 import { useState } from "react";
+import { canManageLibrary } from "../utils/roles";
 
 const { Title, Text } = Typography;
 
@@ -43,7 +45,7 @@ const typeOptions = [
   { label: "Dropdown", value: "SELECT" },
 ];
 
-export function AttributeLibraryPage() {
+export function AttributeLibraryPage({ user }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
@@ -99,6 +101,10 @@ export function AttributeLibraryPage() {
   const selectedAttribute = data.find(
     (attribute) => attribute.id === selectedAttributeIds[0],
   );
+
+  if (!canManageLibrary(user)) {
+    return <Alert type="warning" message="You do not have access to this page" />;
+  }
 
   const columns = [
     {

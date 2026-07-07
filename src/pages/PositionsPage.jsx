@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Checkbox,
   Form,
@@ -23,10 +24,15 @@ import {
 import { createCv } from "../api/cvApi";
 import { getAttributes } from "../api/attributeApi";
 import { useState } from "react";
+import {
+  canCreateCv,
+  canManagePositions,
+  canViewPublishedCvs,
+} from "../utils/roles";
 
 const { Title, Text } = Typography;
 
-export function PositionsPage({ onViewPublishedCvs }) {
+export function PositionsPage({ user, onViewPublishedCvs }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
@@ -153,6 +159,10 @@ export function PositionsPage({ onViewPublishedCvs }) {
     return <Text type="danger">Failed to load positions</Text>;
   }
 
+  const showCreateCv = canCreateCv(user);
+  const showManagePositions = canManagePositions(user);
+  const showViewPublishedCvs = canViewPublishedCvs(user);
+
   return (
     <div>
       <Space
@@ -170,78 +180,90 @@ export function PositionsPage({ onViewPublishedCvs }) {
           <Text type="secondary">Selected: {selectedPositionIds.length}</Text>
 
           {selectedPositionIds.length > 1 ? (
-            <Text type="warning">Select only one position to create a CV</Text>
+            <Text type="warning">
+              Select only one position for toolbar actions
+            </Text>
           ) : null}
 
-          <Button
-            disabled={selectedPositionIds.length !== 1}
-            loading={createCvMutation.isPending}
-            onClick={() => {
-              if (!selectedPosition) return;
+          {showCreateCv ? (
+            <Button
+              disabled={selectedPositionIds.length !== 1}
+              loading={createCvMutation.isPending}
+              onClick={() => {
+                if (!selectedPosition) return;
 
-              createCvMutation.mutate(selectedPosition.id);
-            }}
-          >
-            Create CV
-          </Button>
+                createCvMutation.mutate(selectedPosition.id);
+              }}
+            >
+              Create CV
+            </Button>
+          ) : null}
 
-          <Button
-            disabled={selectedPositionIds.length !== 1}
-            onClick={() => {
-              if (!selectedPosition) return;
+          {showViewPublishedCvs ? (
+            <Button
+              disabled={selectedPositionIds.length !== 1}
+              onClick={() => {
+                if (!selectedPosition) return;
 
-              onViewPublishedCvs?.(selectedPosition.id);
-            }}
-          >
-            View Published CVs
-          </Button>
+                onViewPublishedCvs?.(selectedPosition.id);
+              }}
+            >
+              View Published CVs
+            </Button>
+          ) : null}
 
-          <Button
-            disabled={selectedPositionIds.length !== 1}
-            onClick={() => {
-              if (!selectedPosition) return;
+          {showManagePositions ? (
+            <Button
+              disabled={selectedPositionIds.length !== 1}
+              onClick={() => {
+                if (!selectedPosition) return;
 
-              editForm.setFieldsValue({
-                title: selectedPosition.title,
-                shortDescription: selectedPosition.shortDescription,
-                isPublic: selectedPosition.isPublic,
-                maxProjects: selectedPosition.maxProjects,
-                version: selectedPosition.version,
-                attributeIds: selectedPosition.attributes.map(
-                  (item) => item.attributeId,
-                ),
-                requiredAttributeIds: selectedPosition.attributes
-                  .filter((item) => item.isRequired)
-                  .map((item) => item.attributeId),
-              });
+                editForm.setFieldsValue({
+                  title: selectedPosition.title,
+                  shortDescription: selectedPosition.shortDescription,
+                  isPublic: selectedPosition.isPublic,
+                  maxProjects: selectedPosition.maxProjects,
+                  version: selectedPosition.version,
+                  attributeIds: selectedPosition.attributes.map(
+                    (item) => item.attributeId,
+                  ),
+                  requiredAttributeIds: selectedPosition.attributes
+                    .filter((item) => item.isRequired)
+                    .map((item) => item.attributeId),
+                });
 
-              setIsEditModalOpen(true);
-            }}
-          >
-            Edit Selected
-          </Button>
+                setIsEditModalOpen(true);
+              }}
+            >
+              Edit Selected
+            </Button>
+          ) : null}
 
-          <Button
-            danger
-            disabled={selectedPositionIds.length === 0}
-            loading={deletePositionsMutation.isPending}
-            onClick={() => {
-              Modal.confirm({
-                title: "Delete selected positions?",
-                content: "This action will delete selected position templates.",
-                okText: "Delete",
-                okButtonProps: { danger: true },
-                onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
-              });
-            }}
-          >
-            Delete Selected
-          </Button>
+          {showManagePositions ? (
+            <Button
+              danger
+              disabled={selectedPositionIds.length === 0}
+              loading={deletePositionsMutation.isPending}
+              onClick={() => {
+                Modal.confirm({
+                  title: "Delete selected positions?",
+                  content: "This action will delete selected position templates.",
+                  okText: "Delete",
+                  okButtonProps: { danger: true },
+                  onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
+                });
+              }}
+            >
+              Delete Selected
+            </Button>
+          ) : null}
         </Space>
 
-        <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-          Create Position
-        </Button>
+        {showManagePositions ? (
+          <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+            Create Position
+          </Button>
+        ) : null}
       </Space>
       <Table
         rowKey="id"
@@ -255,123 +277,126 @@ export function PositionsPage({ onViewPublishedCvs }) {
         }}
       />
 
-      <Modal
-        title="Create Position"
-        open={isCreateModalOpen}
-        onCancel={() => setIsCreateModalOpen(false)}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={(values) => {
-            createPositionMutation.mutate({
-              title: values.title,
-              shortDescription: values.shortDescription,
-              isPublic: values.isPublic,
-              maxProjects: values.maxProjects,
-              attributes: values.attributeIds.map((attributeId) => ({
-                attributeId,
-                isRequired:
-                  values.requiredAttributeIds?.includes(attributeId) || false,
-              })),
-            });
-          }}
+      {showManagePositions ? (
+        <Modal
+          title="Create Position"
+          open={isCreateModalOpen}
+          onCancel={() => setIsCreateModalOpen(false)}
+          footer={null}
         >
-          <Form.Item
-            label="Title"
-            name="title"
-            rules={[{ required: true, message: "Position title is required" }]}
-          >
-            <Input placeholder="Example: Frontend Developer" />
-          </Form.Item>
-          <Form.Item label="Short Description" name="shortDescription">
-            <Input.TextArea
-              rows={3}
-              placeholder="Short description for candidates"
-            />
-          </Form.Item>
-          <Form.Item
-            label="Public Position"
-            name="isPublic"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
-          <Form.Item label="Max Projects" name="maxProjects" initialValue={3}>
-            <InputNumber min={0} max={10} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item
-            label="Position Attributes"
-            name="attributeIds"
-            rules={[
-              { required: true, message: "Select at least one attribute" },
-            ]}
-          >
-            <Select
-              mode="multiple"
-              loading={isAttributesLoading}
-              placeholder="Select attributes for this position"
-              options={attributes.map((attribute) => ({
-                label: `${attribute.name} (${attribute.type})`,
-                value: attribute.id,
-              }))}
-            />
-          </Form.Item>
-          {selectedCreateAttributeIds.length > 0 && (
-            <Form.Item label="Required Attributes" name="requiredAttributeIds">
-              <Checkbox.Group
-                options={attributes
-                  .filter((attribute) =>
-                    selectedCreateAttributeIds.includes(attribute.id),
-                  )
-                  .map((attribute) => ({
-                    label: attribute.name,
-                    value: attribute.id,
-                  }))}
-              />
-            </Form.Item>
-          )}
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={createPositionMutation.isPending}
-          >
-            Save Position
-          </Button>
-        </Form>{" "}
-      </Modal>
-
-      <Modal
-        title="Edit Position"
-        open={isEditModalOpen}
-        onCancel={() => setIsEditModalOpen(false)}
-        footer={null}
-      >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onFinish={(values) => {
-            if (!selectedPosition) return;
-
-            updatePositionMutation.mutate({
-              id: selectedPosition.id,
-              values: {
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(values) => {
+              createPositionMutation.mutate({
                 title: values.title,
                 shortDescription: values.shortDescription,
                 isPublic: values.isPublic,
                 maxProjects: values.maxProjects,
-                version: values.version,
                 attributes: values.attributeIds.map((attributeId) => ({
                   attributeId,
                   isRequired:
                     values.requiredAttributeIds?.includes(attributeId) || false,
                 })),
-              },
-            });
-          }}
+              });
+            }}
+          >
+            <Form.Item
+              label="Title"
+              name="title"
+              rules={[{ required: true, message: "Position title is required" }]}
+            >
+              <Input placeholder="Example: Frontend Developer" />
+            </Form.Item>
+            <Form.Item label="Short Description" name="shortDescription">
+              <Input.TextArea
+                rows={3}
+                placeholder="Short description for candidates"
+              />
+            </Form.Item>
+            <Form.Item
+              label="Public Position"
+              name="isPublic"
+              valuePropName="checked"
+              initialValue={true}
+            >
+              <Switch />
+            </Form.Item>
+            <Form.Item label="Max Projects" name="maxProjects" initialValue={3}>
+              <InputNumber min={0} max={10} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item
+              label="Position Attributes"
+              name="attributeIds"
+              rules={[
+                { required: true, message: "Select at least one attribute" },
+              ]}
+            >
+              <Select
+                mode="multiple"
+                loading={isAttributesLoading}
+                placeholder="Select attributes for this position"
+                options={attributes.map((attribute) => ({
+                  label: `${attribute.name} (${attribute.type})`,
+                  value: attribute.id,
+                }))}
+              />
+            </Form.Item>
+            {selectedCreateAttributeIds.length > 0 && (
+              <Form.Item label="Required Attributes" name="requiredAttributeIds">
+                <Checkbox.Group
+                  options={attributes
+                    .filter((attribute) =>
+                      selectedCreateAttributeIds.includes(attribute.id),
+                    )
+                    .map((attribute) => ({
+                      label: attribute.name,
+                      value: attribute.id,
+                    }))}
+                />
+              </Form.Item>
+            )}
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={createPositionMutation.isPending}
+            >
+              Save Position
+            </Button>
+          </Form>{" "}
+        </Modal>
+      ) : null}
+
+      {showManagePositions ? (
+        <Modal
+          title="Edit Position"
+          open={isEditModalOpen}
+          onCancel={() => setIsEditModalOpen(false)}
+          footer={null}
         >
+          <Form
+            form={editForm}
+            layout="vertical"
+            onFinish={(values) => {
+              if (!selectedPosition) return;
+
+              updatePositionMutation.mutate({
+                id: selectedPosition.id,
+                values: {
+                  title: values.title,
+                  shortDescription: values.shortDescription,
+                  isPublic: values.isPublic,
+                  maxProjects: values.maxProjects,
+                  version: values.version,
+                  attributes: values.attributeIds.map((attributeId) => ({
+                    attributeId,
+                    isRequired:
+                      values.requiredAttributeIds?.includes(attributeId) || false,
+                  })),
+                },
+              });
+            }}
+          >
           <Form.Item
             label="Title"
             name="title"
@@ -436,8 +461,9 @@ export function PositionsPage({ onViewPublishedCvs }) {
           >
             Save Changes
           </Button>
-        </Form>
-      </Modal>
+          </Form>
+        </Modal>
+      ) : null}
     </div>
   );
 }

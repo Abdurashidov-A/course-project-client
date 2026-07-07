@@ -2,7 +2,11 @@ import { Button, Layout, Menu, Space, Typography } from "antd";
 import { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
-import { isAdmin, isCandidate, isRecruiter } from "./utils/roles";
+import {
+  canManageLibrary,
+  canViewPublishedCvs,
+  isCandidate,
+} from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
 import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 import { PositionsPage } from "./pages/PositionsPage";
@@ -47,36 +51,13 @@ function getMenuItems(user) {
     );
   }
 
-  if (isRecruiter(user)) {
+  if (canManageLibrary(user)) {
     items.push(
       {
         key: "attribute-library",
         label: "Attribute Library",
         title: "Attribute Library",
         description: "Reusable attributes managed by recruiters.",
-      },
-      {
-        key: "cv-search",
-        label: "CV Search",
-        title: "CV Search",
-        description: "Search and browse published candidate CVs.",
-      },
-    );
-  }
-
-  if (isAdmin(user)) {
-    items.push(
-      {
-        key: "admin-users",
-        label: "Admin Users",
-        title: "Admin Users",
-        description: "Manage users, statuses, and roles.",
-      },
-      {
-        key: "admin-profiles",
-        label: "All Profiles",
-        title: "All Profiles",
-        description: "Admin access to candidate profiles.",
       },
     );
   }
@@ -151,18 +132,20 @@ export default function App() {
 
         <Content style={{ padding: 24 }}>
           {selectedPageKey === "attribute-library" ? (
-            <AttributeLibraryPage />
+            <AttributeLibraryPage user={user} />
           ) : selectedPageKey === "positions" ? (
             <PositionsPage
+              user={user}
               onViewPublishedCvs={(positionId) => {
                 setSelectedPositionId(positionId);
                 setSelectedPageKey("position-cvs");
               }}
             />
           ) : selectedPageKey === "my-profile" ? (
-            <CandidateProfilePage />
+            <CandidateProfilePage user={user} />
           ) : selectedPageKey === "my-cvs" ? (
             <MyCvsPage
+              user={user}
               onOpenCv={(cvId) => {
                 setSelectedCvId(cvId);
                 setCvPreviewSource("my-cvs");
@@ -171,6 +154,7 @@ export default function App() {
             />
           ) : selectedPageKey === "position-cvs" ? (
             <PositionCvsPage
+              user={user}
               positionId={selectedPositionId}
               onBack={() => {
                 setSelectedPageKey("positions");

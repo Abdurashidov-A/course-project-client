@@ -24,6 +24,7 @@ import {
   getProfileAttributes,
   saveProfileAttribute,
 } from "../api/profileAttributeApi";
+import { isCandidate } from "../utils/roles";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -191,7 +192,11 @@ function renderValueInput(attribute) {
   return <Input placeholder="Enter value" />;
 }
 
-export function CandidateProfilePage() {
+export function CandidateProfilePage({ user }) {
+  if (!isCandidate(user)) {
+    return <Alert type="warning" message="You do not have access to this page" />;
+  }
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);

@@ -1,6 +1,7 @@
 import { Alert, Empty, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getMyCvs } from "../api/cvApi";
+import { isCandidate } from "../utils/roles";
 
 const { Title } = Typography;
 
@@ -12,7 +13,11 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
-export function MyCvsPage({ onOpenCv }) {
+export function MyCvsPage({ user, onOpenCv }) {
+  if (!isCandidate(user)) {
+    return <Alert type="warning" message="You do not have access to this page" />;
+  }
+
   const {
     data = [],
     isLoading,
