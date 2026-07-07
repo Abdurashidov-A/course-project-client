@@ -9,6 +9,7 @@ import { PositionsPage } from "./pages/PositionsPage";
 import { CandidateProfilePage } from "./pages/CandidateProfilePage";
 import { MyCvsPage } from "./pages/MyCvsPage";
 import { CvPreviewPage } from "./pages/CvPreviewPage";
+import { PositionCvsPage } from "./pages/PositionCvsPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -87,6 +88,8 @@ export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
   const [selectedCvId, setSelectedCvId] = useState(null);
+  const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [cvPreviewSource, setCvPreviewSource] = useState("my-cvs");
 
   if (!isAuthenticated) {
     return <LoginPage />;
@@ -94,7 +97,13 @@ export default function App() {
 
   const menuItems = getMenuItems(user);
   const menuSelectedKey =
-    selectedPageKey === "cv-preview" ? "my-cvs" : selectedPageKey;
+    selectedPageKey === "cv-preview"
+      ? cvPreviewSource === "position-cvs"
+        ? "positions"
+        : "my-cvs"
+      : selectedPageKey === "position-cvs"
+        ? "positions"
+        : selectedPageKey;
   const selectedPage =
     menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
 
@@ -127,6 +136,10 @@ export default function App() {
               if (key !== "cv-preview") {
                 setSelectedCvId(null);
               }
+
+              if (key !== "position-cvs" && key !== "cv-preview") {
+                setSelectedPositionId(null);
+              }
             }}
             items={menuItems.map((item) => ({
               key: item.key,
@@ -140,13 +153,31 @@ export default function App() {
           {selectedPageKey === "attribute-library" ? (
             <AttributeLibraryPage />
           ) : selectedPageKey === "positions" ? (
-            <PositionsPage />
+            <PositionsPage
+              onViewPublishedCvs={(positionId) => {
+                setSelectedPositionId(positionId);
+                setSelectedPageKey("position-cvs");
+              }}
+            />
           ) : selectedPageKey === "my-profile" ? (
             <CandidateProfilePage />
           ) : selectedPageKey === "my-cvs" ? (
             <MyCvsPage
               onOpenCv={(cvId) => {
                 setSelectedCvId(cvId);
+                setCvPreviewSource("my-cvs");
+                setSelectedPageKey("cv-preview");
+              }}
+            />
+          ) : selectedPageKey === "position-cvs" ? (
+            <PositionCvsPage
+              positionId={selectedPositionId}
+              onBack={() => {
+                setSelectedPageKey("positions");
+              }}
+              onOpenCv={(cvId) => {
+                setSelectedCvId(cvId);
+                setCvPreviewSource("position-cvs");
                 setSelectedPageKey("cv-preview");
               }}
             />
@@ -154,7 +185,7 @@ export default function App() {
             <CvPreviewPage
               cvId={selectedCvId}
               onBack={() => {
-                setSelectedPageKey("my-cvs");
+                setSelectedPageKey(cvPreviewSource);
               }}
             />
           ) : (

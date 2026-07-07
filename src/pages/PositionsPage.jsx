@@ -26,7 +26,7 @@ import { useState } from "react";
 
 const { Title, Text } = Typography;
 
-export function PositionsPage() {
+export function PositionsPage({ onViewPublishedCvs }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
@@ -183,6 +183,17 @@ export function PositionsPage() {
             }}
           >
             Create CV
+          </Button>
+
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            onClick={() => {
+              if (!selectedPosition) return;
+
+              onViewPublishedCvs?.(selectedPosition.id);
+            }}
+          >
+            View Published CVs
           </Button>
 
           <Button

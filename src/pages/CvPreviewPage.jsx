@@ -214,6 +214,7 @@ export function CvPreviewPage({ cvId, onBack }) {
     data?.attributes?.find(
       (attribute) => attribute.positionAttributeId === selectedRowKeys[0],
     ) || null;
+  const canEditValues = Boolean(data?.canEditValues);
 
   const saveMutation = useMutation({
     mutationFn: ({ attributeId, payload }) =>
@@ -380,14 +381,18 @@ export function CvPreviewPage({ cvId, onBack }) {
       <Space wrap>
         <Tag color="blue">Status: {data?.status || "—"}</Tag>
         <Tag>Version: {data?.version ?? "—"}</Tag>
-        <Button
-          type="primary"
-          disabled={data?.status === "PUBLISHED"}
-          loading={publishMutation.isPending}
-          onClick={handlePublish}
-        >
-          {data?.status === "PUBLISHED" ? "Published" : "Publish"}
-        </Button>
+        {canEditValues ? (
+          <Button
+            type="primary"
+            disabled={data?.status === "PUBLISHED"}
+            loading={publishMutation.isPending}
+            onClick={handlePublish}
+          >
+            {data?.status === "PUBLISHED" ? "Published" : "Publish"}
+          </Button>
+        ) : (
+          <Tag color="default">Read-only view</Tag>
+        )}
       </Space>
 
       {missingPublishAttributes.length > 0 ? (
@@ -401,18 +406,20 @@ export function CvPreviewPage({ cvId, onBack }) {
         />
       ) : null}
 
-      <Space wrap>
-        <Text type="secondary">Selected: {selectedRowKeys.length}</Text>
-        {selectedRowKeys.length > 1 ? (
-          <Text type="warning">Select only one attribute to edit</Text>
-        ) : null}
-        <Button
-          disabled={selectedRowKeys.length !== 1}
-          onClick={handleEditValue}
-        >
-          Edit Value
-        </Button>
-      </Space>
+      {canEditValues ? (
+        <Space wrap>
+          <Text type="secondary">Selected: {selectedRowKeys.length}</Text>
+          {selectedRowKeys.length > 1 ? (
+            <Text type="warning">Select only one attribute to edit</Text>
+          ) : null}
+          <Button
+            disabled={selectedRowKeys.length !== 1}
+            onClick={handleEditValue}
+          >
+            Edit Value
+          </Button>
+        </Space>
+      ) : null}
 
       <Table
         rowKey="positionAttributeId"
@@ -420,40 +427,46 @@ export function CvPreviewPage({ cvId, onBack }) {
         columns={columns}
         dataSource={data?.attributes || []}
         pagination={{ pageSize: 10 }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
+        rowSelection={
+          canEditValues
+            ? {
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }
+            : undefined
+        }
         locale={{
           emptyText: <Empty description="No attributes found" />,
         }}
       />
 
-      <Modal
-        title={selectedAttribute ? `Edit ${selectedAttribute.name}` : "Edit Value"}
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={() => form.submit()}
-        confirmLoading={saveMutation.isPending}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item label="Attribute">
-            <Input value={selectedAttribute?.name} disabled />
-          </Form.Item>
+      {canEditValues ? (
+        <Modal
+          title={selectedAttribute ? `Edit ${selectedAttribute.name}` : "Edit Value"}
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          onOk={() => form.submit()}
+          confirmLoading={saveMutation.isPending}
+          destroyOnHidden
+        >
+          <Form form={form} layout="vertical" onFinish={handleSubmit}>
+            <Form.Item label="Attribute">
+              <Input value={selectedAttribute?.name} disabled />
+            </Form.Item>
 
-          <Form.Item
-            key={selectedAttribute?.type || "empty"}
-            label="Value"
-            name="value"
-            valuePropName={
-              selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
-            }
-          >
-            {renderValueInput(selectedAttribute)}
-          </Form.Item>
-        </Form>
-      </Modal>
+            <Form.Item
+              key={selectedAttribute?.type || "empty"}
+              label="Value"
+              name="value"
+              valuePropName={
+                selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
+              }
+            >
+              {renderValueInput(selectedAttribute)}
+            </Form.Item>
+          </Form>
+        </Modal>
+      ) : null}
     </Space>
   );
 }

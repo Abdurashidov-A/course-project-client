@@ -12,6 +12,12 @@ export async function getCvById(cvId) {
   return response.data;
 }
 
+export async function getPositionCvs(positionId) {
+  const response = await api.get(`/api/positions/${positionId}/cvs`);
+
+  return response.data;
+}
+
 export async function publishCv(cvId, version) {
   const response = await api.patch(`/api/cvs/${cvId}/publish`, {
     version,
