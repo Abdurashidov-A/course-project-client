@@ -12,6 +12,7 @@ import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 import { PositionsPage } from "./pages/PositionsPage";
 import { CandidateProfilePage } from "./pages/CandidateProfilePage";
 import { MyCvsPage } from "./pages/MyCvsPage";
+import { MyProjectsPage } from "./pages/MyProjectsPage";
 import { CvPreviewPage } from "./pages/CvPreviewPage";
 import { PositionCvsPage } from "./pages/PositionCvsPage";
 
@@ -47,6 +48,12 @@ function getMenuItems(user) {
         label: "My CVs",
         title: "My CVs",
         description: "Table view of CVs created by the candidate.",
+      },
+      {
+        key: "my-projects",
+        label: "My Projects",
+        title: "My Projects",
+        description: "Table view of projects created by the candidate.",
       },
     );
   }
@@ -152,6 +159,8 @@ export default function App() {
                 setSelectedPageKey("cv-preview");
               }}
             />
+          ) : selectedPageKey === "my-projects" ? (
+            <MyProjectsPage user={user} />
           ) : selectedPageKey === "position-cvs" ? (
             <PositionCvsPage
               user={user}
