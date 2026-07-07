@@ -8,6 +8,7 @@ import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 import { PositionsPage } from "./pages/PositionsPage";
 import { CandidateProfilePage } from "./pages/CandidateProfilePage";
 import { MyCvsPage } from "./pages/MyCvsPage";
+import { CvPreviewPage } from "./pages/CvPreviewPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -85,14 +86,17 @@ function getMenuItems(user) {
 export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
+  const [selectedCvId, setSelectedCvId] = useState(null);
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
   const menuItems = getMenuItems(user);
+  const menuSelectedKey =
+    selectedPageKey === "cv-preview" ? "my-cvs" : selectedPageKey;
   const selectedPage =
-    menuItems.find((item) => item.key === selectedPageKey) || menuItems[0];
+    menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -116,8 +120,14 @@ export default function App() {
         <Sider width={240} theme="light">
           <Menu
             mode="inline"
-            selectedKeys={[selectedPage.key]}
-            onClick={({ key }) => setSelectedPageKey(key)}
+            selectedKeys={[menuSelectedKey]}
+            onClick={({ key }) => {
+              setSelectedPageKey(key);
+
+              if (key !== "cv-preview") {
+                setSelectedCvId(null);
+              }
+            }}
             items={menuItems.map((item) => ({
               key: item.key,
               label: item.label,
@@ -127,14 +137,26 @@ export default function App() {
         </Sider>
 
         <Content style={{ padding: 24 }}>
-          {selectedPage.key === "attribute-library" ? (
+          {selectedPageKey === "attribute-library" ? (
             <AttributeLibraryPage />
-          ) : selectedPage.key === "positions" ? (
+          ) : selectedPageKey === "positions" ? (
             <PositionsPage />
-          ) : selectedPage.key === "my-profile" ? (
+          ) : selectedPageKey === "my-profile" ? (
             <CandidateProfilePage />
-          ) : selectedPage.key === "my-cvs" ? (
-            <MyCvsPage />
+          ) : selectedPageKey === "my-cvs" ? (
+            <MyCvsPage
+              onOpenCv={(cvId) => {
+                setSelectedCvId(cvId);
+                setSelectedPageKey("cv-preview");
+              }}
+            />
+          ) : selectedPageKey === "cv-preview" ? (
+            <CvPreviewPage
+              cvId={selectedCvId}
+              onBack={() => {
+                setSelectedPageKey("my-cvs");
+              }}
+            />
           ) : (
             <PagePlaceholder
               title={selectedPage.title}

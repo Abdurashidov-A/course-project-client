@@ -12,7 +12,7 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
-export function MyCvsPage() {
+export function MyCvsPage({ onOpenCv }) {
   const {
     data = [],
     isLoading,
@@ -69,6 +69,10 @@ export function MyCvsPage() {
         dataSource={data}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
+        onRow={(record) => ({
+          onClick: () => onOpenCv?.(record.id),
+          style: { cursor: "pointer" },
+        })}
         locale={{
           emptyText: <Empty description="No CVs created yet" />,
         }}
