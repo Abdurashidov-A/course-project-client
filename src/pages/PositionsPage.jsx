@@ -4,6 +4,7 @@ import {
   Form,
   Input,
   InputNumber,
+  message,
   Modal,
   Select,
   Space,
@@ -19,6 +20,7 @@ import {
   getPositions,
   updatePosition,
 } from "../api/positionApi";
+import { createCv } from "../api/cvApi";
 import { getAttributes } from "../api/attributeApi";
 import { useState } from "react";
 
@@ -60,6 +62,21 @@ export function PositionsPage() {
       setIsEditModalOpen(false);
       setSelectedPositionIds([]);
       editForm.resetFields();
+    },
+  });
+
+  const createCvMutation = useMutation({
+    mutationFn: createCv,
+    onSuccess: () => {
+      message.success("CV created successfully");
+    },
+    onError: (error) => {
+      if (error.response?.status === 409) {
+        message.warning("CV already exists for this position");
+        return;
+      }
+
+      message.error("Failed to create CV");
     },
   });
 
@@ -151,6 +168,22 @@ export function PositionsPage() {
 
         <Space style={{ marginBottom: 16 }} wrap>
           <Text type="secondary">Selected: {selectedPositionIds.length}</Text>
+
+          {selectedPositionIds.length > 1 ? (
+            <Text type="warning">Select only one position to create a CV</Text>
+          ) : null}
+
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            loading={createCvMutation.isPending}
+            onClick={() => {
+              if (!selectedPosition) return;
+
+              createCvMutation.mutate(selectedPosition.id);
+            }}
+          >
+            Create CV
+          </Button>
 
           <Button
             disabled={selectedPositionIds.length !== 1}
