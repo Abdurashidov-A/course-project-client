@@ -7,6 +7,7 @@ import PagePlaceholder from "./components/PagePlaceholder";
 import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
 import { PositionsPage } from "./pages/PositionsPage";
 import { CandidateProfilePage } from "./pages/CandidateProfilePage";
+import { MyCvsPage } from "./pages/MyCvsPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -132,6 +133,8 @@ export default function App() {
             <PositionsPage />
           ) : selectedPage.key === "my-profile" ? (
             <CandidateProfilePage />
+          ) : selectedPage.key === "my-cvs" ? (
+            <MyCvsPage />
           ) : (
             <PagePlaceholder
               title={selectedPage.title}
