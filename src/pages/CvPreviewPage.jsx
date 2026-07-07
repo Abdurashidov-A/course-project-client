@@ -33,6 +33,10 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString();
 }
 
+function formatPeriod(start, end) {
+  return `${formatDate(start)} - ${formatDate(end)}`;
+}
+
 function renderAttributeValue(record) {
   const value = record.value;
 
@@ -315,6 +319,43 @@ export function CvPreviewPage({ cvId, onBack }) {
     },
   ];
 
+  const projectColumns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Period",
+      key: "period",
+      render: (_, record) => formatPeriod(record.periodStart, record.periodEnd),
+    },
+    {
+      title: "Technology Tags",
+      dataIndex: "technologyTags",
+      key: "technologyTags",
+      render: (technologyTags) => {
+        if (!technologyTags || technologyTags.length === 0) {
+          return <Text type="secondary">No tags</Text>;
+        }
+
+        return (
+          <Space wrap>
+            {technologyTags.map((tag) => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      render: (description) => description || <Text type="secondary">No description</Text>,
+    },
+  ];
+
   if (!cvId) {
     return (
       <Space direction="vertical" size="middle">
@@ -439,6 +480,22 @@ export function CvPreviewPage({ cvId, onBack }) {
           emptyText: <Empty description="No attributes found" />,
         }}
       />
+
+      <div>
+        <Title level={3} style={{ marginBottom: 12 }}>
+          Projects
+        </Title>
+
+        <Table
+          rowKey="id"
+          columns={projectColumns}
+          dataSource={data?.projects || []}
+          pagination={{ pageSize: 10 }}
+          locale={{
+            emptyText: <Empty description="No projects added yet." />,
+          }}
+        />
+      </div>
 
       {canEditValues ? (
         <Modal
