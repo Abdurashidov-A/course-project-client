@@ -23,6 +23,66 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+function PopularPositionsSection({ data }) {
+  const popularPositionsColumns = [
+    {
+      title: "Position",
+      dataIndex: "title",
+      key: "title",
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Text>{record.title || "—"}</Text>
+          <Text type="secondary">{record.shortDescription || "No description"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Submitted CVs",
+      dataIndex: "submittedCvsCount",
+      key: "submittedCvsCount",
+      width: 160,
+    },
+    {
+      title: "Published CVs",
+      dataIndex: "publishedCvsCount",
+      key: "publishedCvsCount",
+      width: 160,
+    },
+  ];
+
+  return (
+    <Card title="Most Popular Positions">
+      <Table
+        rowKey="id"
+        columns={popularPositionsColumns}
+        dataSource={data?.popularPositions || []}
+        pagination={false}
+        locale={{ emptyText: <Empty description="No popular positions yet" /> }}
+      />
+    </Card>
+  );
+}
+
+function TechnologyTagCloudSection({ data }) {
+  const technologyTags = data?.technologyTagCloud || [];
+
+  return (
+    <Card title="Technology Tag Cloud">
+      {technologyTags.length > 0 ? (
+        <Space wrap size={[8, 12]}>
+          {technologyTags.map((item) => (
+            <Tag key={item.tag} style={{ paddingInline: 12, paddingBlock: 6 }}>
+              {item.tag} {item.count}
+            </Tag>
+          ))}
+        </Space>
+      ) : (
+        <Empty description="No technology tags yet" />
+      )}
+    </Card>
+  );
+}
+
 function CandidateDashboard({ data }) {
   const stats = data?.stats || {};
 
@@ -153,6 +213,15 @@ function CandidateDashboard({ data }) {
           </Card>
         </Col>
       </Row>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={16}>
+          <PopularPositionsSection data={data} />
+        </Col>
+        <Col xs={24} xl={8}>
+          <TechnologyTagCloudSection data={data} />
+        </Col>
+      </Row>
     </Space>
   );
 }
@@ -272,6 +341,15 @@ function RecruiterDashboard({ data }) {
               locale={{ emptyText: <Empty description="No positions yet" /> }}
             />
           </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={16}>
+          <PopularPositionsSection data={data} />
+        </Col>
+        <Col xs={24} xl={8}>
+          <TechnologyTagCloudSection data={data} />
         </Col>
       </Row>
     </Space>
