@@ -9,6 +9,7 @@ import {
 } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
 import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { PositionsPage } from "./pages/PositionsPage";
 import { CandidateProfilePage } from "./pages/CandidateProfilePage";
 import { MyCvsPage } from "./pages/MyCvsPage";
@@ -138,7 +139,9 @@ export default function App() {
         </Sider>
 
         <Content style={{ padding: 24 }}>
-          {selectedPageKey === "attribute-library" ? (
+          {selectedPageKey === "dashboard" ? (
+            <DashboardPage />
+          ) : selectedPageKey === "attribute-library" ? (
             <AttributeLibraryPage user={user} />
           ) : selectedPageKey === "positions" ? (
             <PositionsPage
