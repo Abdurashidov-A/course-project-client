@@ -89,6 +89,14 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
         </Text>
       </div>
 
+      {data?.position?.projectTags?.length ? (
+        <Space wrap>
+          {data.position.projectTags.map((tag) => (
+            <Tag key={tag}>{tag}</Tag>
+          ))}
+        </Space>
+      ) : null}
+
       <Table
         rowKey="id"
         columns={columns}

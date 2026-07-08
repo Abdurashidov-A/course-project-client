@@ -133,6 +133,24 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       key: "maxProjects",
     },
     {
+      title: "Project Tags",
+      dataIndex: "projectTags",
+      key: "projectTags",
+      render: (projectTags) => {
+        if (!projectTags || projectTags.length === 0) {
+          return <Text type="secondary">No tags</Text>;
+        }
+
+        return (
+          <Space wrap>
+            {projectTags.map((tag) => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
+          </Space>
+        );
+      },
+    },
+    {
       title: "Attributes",
       dataIndex: "attributes",
       key: "attributes",
@@ -223,6 +241,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                   shortDescription: selectedPosition.shortDescription,
                   isPublic: selectedPosition.isPublic,
                   maxProjects: selectedPosition.maxProjects,
+                  projectTags: selectedPosition.projectTags,
                   version: selectedPosition.version,
                   attributeIds: selectedPosition.attributes.map(
                     (item) => item.attributeId,
@@ -293,6 +312,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 shortDescription: values.shortDescription,
                 isPublic: values.isPublic,
                 maxProjects: values.maxProjects,
+                projectTags: values.projectTags || [],
                 attributes: values.attributeIds.map((attributeId) => ({
                   attributeId,
                   isRequired:
@@ -324,6 +344,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             </Form.Item>
             <Form.Item label="Max Projects" name="maxProjects" initialValue={3}>
               <InputNumber min={0} max={10} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item label="Project Tags" name="projectTags">
+              <Select mode="tags" placeholder="Add project tags" />
             </Form.Item>
             <Form.Item
               label="Position Attributes"
@@ -387,6 +410,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                   shortDescription: values.shortDescription,
                   isPublic: values.isPublic,
                   maxProjects: values.maxProjects,
+                  projectTags: values.projectTags || [],
                   version: values.version,
                   attributes: values.attributeIds.map((attributeId) => ({
                     attributeId,
@@ -419,6 +443,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           </Form.Item>
           <Form.Item label="Max Projects" name="maxProjects">
             <InputNumber min={0} max={10} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item label="Project Tags" name="projectTags">
+            <Select mode="tags" placeholder="Add project tags" />
           </Form.Item>
           <Form.Item
             label="Position Attributes"

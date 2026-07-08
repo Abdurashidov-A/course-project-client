@@ -486,6 +486,14 @@ export function CvPreviewPage({ cvId, onBack }) {
           Projects
         </Title>
 
+        {data?.position?.projectTags?.length ? (
+          <Space wrap style={{ marginBottom: 12 }}>
+            {data.position.projectTags.map((tag) => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
+          </Space>
+        ) : null}
+
         <Table
           rowKey="id"
           columns={projectColumns}
