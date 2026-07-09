@@ -12,6 +12,12 @@ export async function createPosition(positionData) {
   return response.data;
 }
 
+export async function duplicatePosition(id) {
+  const response = await api.post(`/api/positions/${id}/duplicate`);
+
+  return response.data;
+}
+
 export async function deletePositions(ids) {
   const response = await api.delete("/api/positions", {
     data: { ids },

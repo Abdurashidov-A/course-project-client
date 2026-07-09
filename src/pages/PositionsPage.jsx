@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createPosition,
   deletePositions,
+  duplicatePosition,
   getPositions,
   updatePosition,
 } from "../api/positionApi";
@@ -58,6 +59,28 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["positions"] });
       setSelectedPositionIds([]);
+    },
+  });
+
+  const duplicatePositionMutation = useMutation({
+    mutationFn: duplicatePosition,
+    onSuccess: () => {
+      message.success("Position duplicated successfully");
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      setSelectedPositionIds([]);
+    },
+    onError: (error) => {
+      if (error.response?.status === 403) {
+        message.warning("Only recruiters/admins can duplicate positions.");
+        return;
+      }
+
+      if (error.response?.status === 404) {
+        message.error("Source position was not found.");
+        return;
+      }
+
+      message.error("Failed to duplicate position");
     },
   });
 
@@ -255,6 +278,20 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               }}
             >
               Edit Selected
+            </Button>
+          ) : null}
+
+          {showManagePositions ? (
+            <Button
+              disabled={selectedPositionIds.length !== 1}
+              loading={duplicatePositionMutation.isPending}
+              onClick={() => {
+                if (!selectedPosition) return;
+
+                duplicatePositionMutation.mutate(selectedPosition.id);
+              }}
+            >
+              Duplicate Selected
             </Button>
           ) : null}
 
