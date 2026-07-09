@@ -26,6 +26,18 @@ export async function publishCv(cvId, version) {
   return response.data;
 }
 
+export async function likeCv(cvId) {
+  const response = await api.post(`/api/cvs/${cvId}/like`);
+
+  return response.data;
+}
+
+export async function unlikeCv(cvId) {
+  const response = await api.delete(`/api/cvs/${cvId}/like`);
+
+  return response.data;
+}
+
 export async function createCv(positionId) {
   const response = await api.post("/api/cvs", {
     positionId,

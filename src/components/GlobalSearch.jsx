@@ -38,7 +38,7 @@ function buildSections(role, results = {}) {
         title: "My CVs",
         items: results.cvs || [],
         renderDescription: (item) =>
-          `Status: ${item.status} • Updated: ${formatDate(item.updatedAt)}`,
+          `Status: ${item.status} • Updated: ${formatDate(item.updatedAt)} • Likes: ${item.likesCount ?? 0}`,
       },
       {
         key: "projects",
@@ -73,13 +73,13 @@ function buildSections(role, results = {}) {
       renderDescription: (item) =>
         `${item.category} • ${item.description || item.type}`,
     },
-    {
-      key: "publishedCvs",
-      title: "Published CVs",
-      items: results.publishedCvs || [],
-      renderDescription: (item) =>
-        `${item.positionTitle} • ${item.candidateName} • ${formatDate(item.updatedAt)}`,
-    },
+      {
+        key: "publishedCvs",
+        title: "Published CVs",
+        items: results.publishedCvs || [],
+        renderDescription: (item) =>
+          `${item.positionTitle} • ${item.candidateName} • ${formatDate(item.updatedAt)} • Likes: ${item.likesCount ?? 0}${item.likedByCurrentUser ? " • Liked by you" : ""}`,
+      },
     {
       key: "candidates",
       title: "Candidates",

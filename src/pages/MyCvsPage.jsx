@@ -58,6 +58,13 @@ export function MyCvsPage({ user, onOpenCv }) {
       key: "version",
       width: 100,
     },
+    {
+      title: "Likes",
+      dataIndex: "likesCount",
+      key: "likesCount",
+      width: 100,
+      render: (likesCount) => likesCount ?? 0,
+    },
   ];
 
   if (isError) {

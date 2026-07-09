@@ -16,9 +16,9 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { getCvById, publishCv } from "../api/cvApi";
+import { getCvById, likeCv, publishCv, unlikeCv } from "../api/cvApi";
 import { saveProfileAttribute } from "../api/profileAttributeApi";
 
 const { Title, Text } = Typography;
@@ -203,6 +203,7 @@ export function CvPreviewPage({ cvId, onBack }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [missingPublishAttributes, setMissingPublishAttributes] = useState([]);
   const [form] = Form.useForm();
+  const queryClient = useQueryClient();
   const {
     data,
     isLoading,
@@ -219,6 +220,9 @@ export function CvPreviewPage({ cvId, onBack }) {
       (attribute) => attribute.positionAttributeId === selectedRowKeys[0],
     ) || null;
   const canEditValues = Boolean(data?.canEditValues);
+  const canLike =
+    (data?.viewerRole === "RECRUITER" || data?.viewerRole === "ADMIN") &&
+    data?.status === "PUBLISHED";
 
   const saveMutation = useMutation({
     mutationFn: ({ attributeId, payload }) =>
@@ -266,6 +270,27 @@ export function CvPreviewPage({ cvId, onBack }) {
       }
 
       message.error("Failed to publish CV");
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: ({ shouldLike, id }) =>
+      shouldLike ? likeCv(id) : unlikeCv(id),
+    onSuccess: async (_, variables) => {
+      message.success(variables.shouldLike ? "CV liked" : "Like removed");
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ["position-cvs"] }),
+        queryClient.invalidateQueries({ queryKey: ["my-cvs"] }),
+      ]);
+    },
+    onError: (error) => {
+      if (error.response?.status === 403) {
+        message.warning(error.response?.data?.message || "You cannot like this CV");
+        return;
+      }
+
+      message.error("Failed to update CV like");
     },
   });
 
@@ -404,6 +429,17 @@ export function CvPreviewPage({ cvId, onBack }) {
     });
   }
 
+  function handleLikeToggle() {
+    if (!data?.id || !canLike) {
+      return;
+    }
+
+    likeMutation.mutate({
+      id: data.id,
+      shouldLike: !data.likedByCurrentUser,
+    });
+  }
+
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
       <Button onClick={onBack} style={{ width: "fit-content" }}>
@@ -422,6 +458,7 @@ export function CvPreviewPage({ cvId, onBack }) {
       <Space wrap>
         <Tag color="blue">Status: {data?.status || "—"}</Tag>
         <Tag>Version: {data?.version ?? "—"}</Tag>
+        <Tag color="purple">Likes: {data?.likesCount ?? 0}</Tag>
         {canEditValues ? (
           <Button
             type="primary"
@@ -434,6 +471,11 @@ export function CvPreviewPage({ cvId, onBack }) {
         ) : (
           <Tag color="default">Read-only view</Tag>
         )}
+        {canLike ? (
+          <Button loading={likeMutation.isPending} onClick={handleLikeToggle}>
+            {data?.likedByCurrentUser ? "Unlike" : "Like"}
+          </Button>
+        ) : null}
       </Space>
 
       {missingPublishAttributes.length > 0 ? (

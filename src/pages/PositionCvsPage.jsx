@@ -54,6 +54,17 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
       key: "version",
       width: 100,
     },
+    {
+      title: "Likes",
+      key: "likesCount",
+      width: 160,
+      render: (_, record) => (
+        <Space wrap size={4}>
+          <span>{record.likesCount ?? 0}</span>
+          {record.likedByCurrentUser ? <Tag color="blue">Liked by you</Tag> : null}
+        </Space>
+      ),
+    },
   ];
 
   if (!positionId) {
