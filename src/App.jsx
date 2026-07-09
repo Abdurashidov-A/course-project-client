@@ -16,6 +16,7 @@ import { MyCvsPage } from "./pages/MyCvsPage";
 import { MyProjectsPage } from "./pages/MyProjectsPage";
 import { CvPreviewPage } from "./pages/CvPreviewPage";
 import { PositionCvsPage } from "./pages/PositionCvsPage";
+import { GlobalSearch } from "./components/GlobalSearch";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -109,6 +110,7 @@ export default function App() {
         <div style={{ fontWeight: 700 }}>CV Management System</div>
 
         <Space>
+          <GlobalSearch />
           <Text style={{ color: "white" }}>{user.name}</Text>
           <Button onClick={logout}>Logout</Button>
         </Space>
