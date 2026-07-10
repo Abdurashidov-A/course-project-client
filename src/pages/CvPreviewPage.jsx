@@ -21,6 +21,7 @@ import dayjs from "dayjs";
 import { getCvById, likeCv, publishCv, unlikeCv } from "../api/cvApi";
 import { saveProfileAttribute } from "../api/profileAttributeApi";
 import { useI18n } from "../i18n/I18nProvider";
+import { MarkdownText } from "../components/MarkdownText";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -400,7 +401,14 @@ export function CvPreviewPage({ cvId, onBack }) {
       dataIndex: "description",
       key: "description",
       render: (description) =>
-        description || <Text type="secondary">{t("common.noDescription", "No description")}</Text>,
+        (
+          <MarkdownText
+            compact
+            emptyText={t("common.noDescription", "No description")}
+          >
+            {description}
+          </MarkdownText>
+        ),
     },
   ];
 
@@ -473,9 +481,12 @@ export function CvPreviewPage({ cvId, onBack }) {
         <Title level={2} style={{ marginBottom: 8 }}>
           {data?.position?.title || t("cvPreview.titleFallback", "CV Preview")}
         </Title>
-        <Text type="secondary">
-          {data?.position?.shortDescription || t("common.noShortDescription", "No short description")}
-        </Text>
+        <MarkdownText
+          className="markdown-text--muted"
+          emptyText={t("common.noShortDescription", "No short description")}
+        >
+          {data?.position?.shortDescription}
+        </MarkdownText>
       </div>
 
       <Space wrap>

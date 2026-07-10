@@ -24,6 +24,7 @@ import {
 } from "../api/projectApi";
 import { isCandidate } from "../utils/roles";
 import { useI18n } from "../i18n/I18nProvider";
+import { MarkdownText } from "../components/MarkdownText";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -271,6 +272,19 @@ export function MyProjectsPage({ user }) {
         }}
       />
 
+      {selectedProject ? (
+        <div style={{ marginTop: 24 }}>
+          <Title level={4} style={{ marginBottom: 8 }}>
+            {t("projects.preview", "Preview")}
+          </Title>
+          <MarkdownText
+            emptyText={t("common.noDescription", "No description")}
+          >
+            {selectedProject.description}
+          </MarkdownText>
+        </div>
+      ) : null}
+
       <Modal
         title={t("projects.addProjectModal", "Add Project")}
         open={isCreateModalOpen}
@@ -301,6 +315,25 @@ export function MyProjectsPage({ user }) {
               rows={5}
               placeholder={t("projects.descriptionPlaceholder", "Write project description in Markdown text")}
             />
+          </Form.Item>
+
+          <Text type="secondary">
+            {t("projects.markdownSupported", "Supports Markdown formatting")}
+          </Text>
+
+          <Form.Item shouldUpdate noStyle>
+            {() => (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong>{t("projects.markdownPreview", "Markdown preview")}</Text>
+                <div style={{ marginTop: 8 }}>
+                  <MarkdownText
+                    emptyText={t("common.noDescription", "No description")}
+                  >
+                    {form.getFieldValue("description")}
+                  </MarkdownText>
+                </div>
+              </div>
+            )}
           </Form.Item>
 
           <Form.Item label={t("projects.technologyTags", "Technology Tags")} name="technologyTags">
@@ -356,6 +389,25 @@ export function MyProjectsPage({ user }) {
               rows={5}
               placeholder={t("projects.descriptionPlaceholder", "Write project description in Markdown text")}
             />
+          </Form.Item>
+
+          <Text type="secondary">
+            {t("projects.markdownSupported", "Supports Markdown formatting")}
+          </Text>
+
+          <Form.Item shouldUpdate noStyle>
+            {() => (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong>{t("projects.markdownPreview", "Markdown preview")}</Text>
+                <div style={{ marginTop: 8 }}>
+                  <MarkdownText
+                    emptyText={t("common.noDescription", "No description")}
+                  >
+                    {editForm.getFieldValue("description")}
+                  </MarkdownText>
+                </div>
+              </div>
+            )}
           </Form.Item>
 
           <Form.Item label={t("projects.technologyTags", "Technology Tags")} name="technologyTags">

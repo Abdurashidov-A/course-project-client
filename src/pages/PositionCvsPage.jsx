@@ -2,8 +2,9 @@ import { Alert, Button, Empty, Space, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getPositionCvs } from "../api/cvApi";
 import { useI18n } from "../i18n/I18nProvider";
+import { MarkdownText } from "../components/MarkdownText";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 function formatDate(value) {
   if (!value) {
@@ -99,9 +100,12 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
         <Title level={2} style={{ marginBottom: 8 }}>
           {data?.position?.title || t("positionCvs.titleFallback", "Published CVs")}
         </Title>
-        <Text type="secondary">
-          {data?.position?.shortDescription || t("common.noShortDescription", "No short description")}
-        </Text>
+        <MarkdownText
+          className="markdown-text--muted"
+          emptyText={t("common.noShortDescription", "No short description")}
+        >
+          {data?.position?.shortDescription}
+        </MarkdownText>
       </div>
 
       {data?.position?.projectTags?.length ? (

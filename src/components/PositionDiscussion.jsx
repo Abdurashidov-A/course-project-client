@@ -16,6 +16,7 @@ import {
   getPositionDiscussions,
 } from "../api/positionApi";
 import { useI18n } from "../i18n/I18nProvider";
+import { MarkdownText } from "./MarkdownText";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -129,7 +130,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
                   <Text type="secondary">{post.author?.email || t("common.none", "—")}</Text>
                   <Text type="secondary">{formatDate(post.createdAt)}</Text>
                 </Space>
-                <Text style={{ whiteSpace: "pre-wrap" }}>{post.content}</Text>
+                <MarkdownText>{post.content}</MarkdownText>
               </Space>
             </List.Item>
           )}
@@ -143,6 +144,9 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
             maxLength={1000}
             placeholder={t("discussion.placeholder", "Write your message")}
           />
+          <Text type="secondary">
+            {t("discussion.markdownSupported", "Markdown supported")}
+          </Text>
           <Space style={{ width: "100%", justifyContent: "space-between" }}>
             <Text type="secondary">{content.trim().length}/1000</Text>
             <Button
