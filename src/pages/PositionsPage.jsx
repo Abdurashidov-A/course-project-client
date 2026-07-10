@@ -1,7 +1,7 @@
 import {
-  Alert,
   Button,
   Checkbox,
+  DatePicker,
   Form,
   Input,
   InputNumber,
@@ -14,6 +14,7 @@ import {
   Tag,
   Typography,
 } from "antd";
+import dayjs from "dayjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createPosition,
@@ -24,7 +25,7 @@ import {
 } from "../api/positionApi";
 import { createCv } from "../api/cvApi";
 import { getAttributes } from "../api/attributeApi";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   canCreateCv,
   canManagePositions,
@@ -34,6 +35,250 @@ import { PositionDiscussion } from "../components/PositionDiscussion";
 import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
+
+const SUPPORTED_ACCESS_RULE_TYPES = ["NUMERIC", "BOOLEAN", "STRING", "SELECT", "DATE"];
+
+function getOperatorOptions(attributeType, t) {
+  if (attributeType === "NUMERIC" || attributeType === "DATE") {
+    return [
+      { label: t("positions.operatorGte", "Greater than or equal"), value: "GTE" },
+      { label: t("positions.operatorLte", "Less than or equal"), value: "LTE" },
+      { label: t("positions.operatorEq", "Equals"), value: "EQ" },
+    ];
+  }
+
+  if (attributeType === "BOOLEAN") {
+    return [{ label: t("positions.operatorEq", "Equals"), value: "EQ" }];
+  }
+
+  if (attributeType === "STRING" || attributeType === "SELECT") {
+    return [
+      { label: t("positions.operatorEq", "Equals"), value: "EQ" },
+      { label: t("positions.operatorIn", "In list"), value: "IN" },
+    ];
+  }
+
+  return [];
+}
+
+function getNormalizedAccessRules(accessRules = [], attributesById) {
+  return accessRules.map((rule, index) => {
+    const attribute = attributesById.get(rule.attributeId);
+    const type = attribute?.type;
+    const normalizedRule = {
+      attributeId: rule.attributeId,
+      operator: rule.operator,
+      sortOrder: typeof rule.sortOrder === "number" ? rule.sortOrder : index + 1,
+    };
+
+    if (type === "NUMERIC") {
+      normalizedRule.numericValue = rule.numericValue;
+    } else if (type === "BOOLEAN") {
+      normalizedRule.booleanValue = rule.booleanValue;
+    } else if (type === "DATE") {
+      normalizedRule.dateValue = rule.dateValue ? dayjs(rule.dateValue) : null;
+    } else if (type === "STRING" || type === "SELECT") {
+      normalizedRule.stringValue =
+        rule.operator === "IN"
+          ? (rule.stringValue || "")
+              .split(",")
+              .map((value) => value.trim())
+              .filter(Boolean)
+          : rule.stringValue || "";
+    }
+
+    return normalizedRule;
+  });
+}
+
+function buildAccessRulesPayload(accessRules = [], attributesById) {
+  return accessRules.map((rule, index) => {
+    const attribute = attributesById.get(rule.attributeId);
+    const type = attribute?.type;
+    const payload = {
+      attributeId: rule.attributeId,
+      operator: rule.operator,
+      sortOrder: index + 1,
+    };
+
+    if (type === "NUMERIC") {
+      payload.numericValue = rule.numericValue;
+    } else if (type === "BOOLEAN") {
+      payload.booleanValue = rule.booleanValue;
+    } else if (type === "DATE") {
+      payload.dateValue = rule.dateValue ? dayjs(rule.dateValue).toISOString() : null;
+    } else if (type === "STRING" || type === "SELECT") {
+      payload.stringValue = Array.isArray(rule.stringValue)
+        ? rule.stringValue.join(",")
+        : rule.stringValue;
+    }
+
+    return payload;
+  });
+}
+
+function AccessRulesEditor({ form, attributes, fieldName, t }) {
+  const isPublic = Form.useWatch("isPublic", form);
+  const accessRules = Form.useWatch(fieldName, form) || [];
+  const supportedAttributes = useMemo(
+    () =>
+      attributes.filter((attribute) =>
+        SUPPORTED_ACCESS_RULE_TYPES.includes(attribute.type),
+      ),
+    [attributes],
+  );
+  const attributesById = useMemo(
+    () => new Map(attributes.map((attribute) => [attribute.id, attribute])),
+    [attributes],
+  );
+
+  if (isPublic) {
+    return <Text type="secondary">{t("positions.publicHelper", "Public position is available to all authenticated candidates.")}</Text>;
+  }
+
+  return (
+    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+      <Text type="secondary">
+        {t(
+          "positions.restrictedHelper",
+          "Candidate must match all rules to access this position.",
+        )}
+      </Text>
+
+      <Form.List name={fieldName}>
+        {(fields, { add, remove }) => (
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            {fields.map((field) => {
+              const currentRule = accessRules[field.name] || {};
+              const selectedAttribute = attributesById.get(currentRule.attributeId);
+              const operatorOptions = getOperatorOptions(selectedAttribute?.type, t);
+              const selectOptions =
+                selectedAttribute?.options?.map((option) => ({
+                  label: option.value,
+                  value: option.value,
+                })) || [];
+
+              return (
+                <Space
+                  key={field.key}
+                  align="start"
+                  wrap
+                  style={{ display: "flex", width: "100%" }}
+                >
+                  <Form.Item
+                    {...field}
+                    label={t("positions.ruleAttribute", "Rule Attribute")}
+                    name={[field.name, "attributeId"]}
+                    rules={[{ required: true }]}
+                    style={{ minWidth: 220, flex: 1 }}
+                  >
+                    <Select
+                      placeholder={t("positions.selectRuleAttribute", "Select attribute")}
+                      options={supportedAttributes.map((attribute) => ({
+                        label: `${attribute.name} (${attribute.type})`,
+                        value: attribute.id,
+                      }))}
+                      onChange={() => {
+                        const nextRules = [...accessRules];
+                        nextRules[field.name] = {
+                          attributeId: form.getFieldValue([fieldName, field.name, "attributeId"]),
+                        };
+                        form.setFieldValue(fieldName, nextRules);
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...field}
+                    label={t("positions.operator", "Operator")}
+                    name={[field.name, "operator"]}
+                    rules={[{ required: true }]}
+                    style={{ minWidth: 180 }}
+                  >
+                    <Select
+                      placeholder={t("positions.selectRuleOperator", "Select operator")}
+                      options={operatorOptions}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...field}
+                    label={t("positions.value", "Value")}
+                    name={[field.name, selectedAttribute?.type === "NUMERIC"
+                      ? "numericValue"
+                      : selectedAttribute?.type === "BOOLEAN"
+                        ? "booleanValue"
+                        : selectedAttribute?.type === "DATE"
+                          ? "dateValue"
+                          : "stringValue"]}
+                    rules={[{ required: true }]}
+                    style={{ minWidth: 220, flex: 1 }}
+                  >
+                    {selectedAttribute?.type === "NUMERIC" ? (
+                      <InputNumber
+                        style={{ width: "100%" }}
+                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                      />
+                    ) : selectedAttribute?.type === "BOOLEAN" ? (
+                      <Select
+                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        options={[
+                          { label: t("common.yes", "Yes"), value: true },
+                          { label: t("common.no", "No"), value: false },
+                        ]}
+                      />
+                    ) : selectedAttribute?.type === "DATE" ? (
+                      <DatePicker style={{ width: "100%" }} />
+                    ) : selectedAttribute?.type === "SELECT" &&
+                      currentRule.operator === "EQ" &&
+                      selectOptions.length > 0 ? (
+                      <Select
+                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        options={selectOptions}
+                      />
+                    ) : selectedAttribute?.type === "SELECT" &&
+                      currentRule.operator === "IN" &&
+                      selectOptions.length > 0 ? (
+                      <Select
+                        mode="multiple"
+                        placeholder={t("positions.enterRuleValues", "Enter comma-separated values")}
+                        options={selectOptions}
+                      />
+                    ) : currentRule.operator === "IN" ? (
+                      <Select
+                        mode="tags"
+                        tokenSeparators={[","]}
+                        placeholder={t("positions.enterRuleValues", "Enter comma-separated values")}
+                      />
+                    ) : (
+                      <Input
+                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                      />
+                    )}
+                  </Form.Item>
+
+                  <Button danger style={{ marginTop: 30 }} onClick={() => remove(field.name)}>
+                    {t("positions.removeRule", "Remove Rule")}
+                  </Button>
+                </Space>
+              );
+            })}
+
+            <Button
+              onClick={() =>
+                add({
+                  operator: undefined,
+                })
+              }
+            >
+              {t("positions.addRule", "Add Rule")}
+            </Button>
+          </Space>
+        )}
+      </Form.List>
+    </Space>
+  );
+}
 
 export function PositionsPage({ user, onViewPublishedCvs }) {
   const { t } = useI18n();
@@ -55,6 +300,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       queryClient.invalidateQueries({ queryKey: ["positions"] });
       form.resetFields();
       setIsCreateModalOpen(false);
+    },
+    onError: (error) => {
+      message.error(error.response?.data?.message || t("common.error", "Error"));
     },
   });
 
@@ -89,7 +337,10 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         return;
       }
 
-      message.error(t("positions.duplicateError", "Failed to duplicate position"));
+      message.error(
+        error.response?.data?.message ||
+          t("positions.duplicateError", "Failed to duplicate position"),
+      );
     },
   });
 
@@ -101,6 +352,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       setSelectedPositionIds([]);
       editForm.resetFields();
     },
+    onError: (error) => {
+      message.error(error.response?.data?.message || t("common.error", "Error"));
+    },
   });
 
   const createCvMutation = useMutation({
@@ -111,6 +365,14 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     onError: (error) => {
       if (error.response?.status === 409) {
         message.warning(t("positions.cvExists", "CV already exists for this position"));
+        return;
+      }
+
+      if (error.response?.status === 403) {
+        message.warning(
+          error.response?.data?.message ||
+            t("positions.accessDenied", "You do not have access to this position."),
+        );
         return;
       }
 
@@ -136,6 +398,11 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     queryFn: getAttributes,
   });
 
+  const attributesById = useMemo(
+    () => new Map(attributes.map((attribute) => [attribute.id, attribute])),
+    [attributes],
+  );
+
   const columns = [
     {
       title: t("positions.titleColumn", "Title"),
@@ -147,7 +414,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       dataIndex: "shortDescription",
       key: "shortDescription",
       render: (description) =>
-        description || <Text type="secondary">{t("common.noDescription", "No description")}</Text>,
+        description || (
+          <Text type="secondary">{t("common.noDescription", "No description")}</Text>
+        ),
     },
     {
       title: t("positions.access", "Access"),
@@ -160,6 +429,13 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             : t("access.restricted", "Restricted")}
         </Tag>
       ),
+    },
+    {
+      title: t("positions.rules", "Rules"),
+      dataIndex: "accessRulesCount",
+      key: "accessRulesCount",
+      width: 100,
+      render: (value) => value ?? 0,
     },
     {
       title: t("positions.maxProjects", "Max Projects"),
@@ -188,14 +464,18 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       title: t("positions.attributes", "Attributes"),
       dataIndex: "attributes",
       key: "attributes",
-      render: (attributes) => {
-        if (!attributes || attributes.length === 0) {
-          return <Text type="secondary">{t("cvPreview.noAttributes", "No attributes found")}</Text>;
+      render: (positionAttributes) => {
+        if (!positionAttributes || positionAttributes.length === 0) {
+          return (
+            <Text type="secondary">
+              {t("cvPreview.noAttributes", "No attributes found")}
+            </Text>
+          );
         }
 
         return (
           <Space wrap>
-            {attributes.map((item) => (
+            {positionAttributes.map((item) => (
               <Tag key={item.id}>
                 {item.attribute.name}
                 {item.isRequired ? " *" : ""}
@@ -208,12 +488,57 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   ];
 
   if (isError) {
-    return <Text type="danger">{t("positions.loadError", "Failed to load positions")}</Text>;
+    return (
+      <Text type="danger">{t("positions.loadError", "Failed to load positions")}</Text>
+    );
   }
 
   const showCreateCv = canCreateCv(user);
   const showManagePositions = canManagePositions(user);
   const showViewPublishedCvs = canViewPublishedCvs(user);
+
+  function openEditModal() {
+    if (!selectedPosition) {
+      return;
+    }
+
+    editForm.setFieldsValue({
+      title: selectedPosition.title,
+      shortDescription: selectedPosition.shortDescription,
+      isPublic: selectedPosition.isPublic,
+      maxProjects: selectedPosition.maxProjects,
+      projectTags: selectedPosition.projectTags,
+      version: selectedPosition.version,
+      attributeIds: selectedPosition.attributes.map((item) => item.attributeId),
+      requiredAttributeIds: selectedPosition.attributes
+        .filter((item) => item.isRequired)
+        .map((item) => item.attributeId),
+      accessRules: getNormalizedAccessRules(
+        selectedPosition.accessRules || [],
+        attributesById,
+      ),
+    });
+
+    setIsEditModalOpen(true);
+  }
+
+  function buildPositionPayload(values) {
+    return {
+      title: values.title,
+      shortDescription: values.shortDescription,
+      isPublic: values.isPublic,
+      maxProjects: values.maxProjects,
+      projectTags: values.projectTags || [],
+      attributes: (values.attributeIds || []).map((attributeId, index) => ({
+        attributeId,
+        isRequired: values.requiredAttributeIds?.includes(attributeId) || false,
+        sortOrder: index + 1,
+      })),
+      accessRules: values.isPublic
+        ? []
+        : buildAccessRulesPayload(values.accessRules || [], attributesById),
+    };
+  }
 
   return (
     <div>
@@ -280,26 +605,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           {showManagePositions ? (
             <Button
               disabled={selectedPositionIds.length !== 1}
-              onClick={() => {
-                if (!selectedPosition) return;
-
-                editForm.setFieldsValue({
-                  title: selectedPosition.title,
-                  shortDescription: selectedPosition.shortDescription,
-                  isPublic: selectedPosition.isPublic,
-                  maxProjects: selectedPosition.maxProjects,
-                  projectTags: selectedPosition.projectTags,
-                  version: selectedPosition.version,
-                  attributeIds: selectedPosition.attributes.map(
-                    (item) => item.attributeId,
-                  ),
-                  requiredAttributeIds: selectedPosition.attributes
-                    .filter((item) => item.isRequired)
-                    .map((item) => item.attributeId),
-                });
-
-                setIsEditModalOpen(true);
-              }}
+              onClick={openEditModal}
             >
               {t("positions.editSelected", "Edit Selected")}
             </Button>
@@ -348,6 +654,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           </Button>
         ) : null}
       </Space>
+
       <Table
         rowKey="id"
         loading={isLoading}
@@ -373,71 +680,116 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           open={isCreateModalOpen}
           onCancel={() => setIsCreateModalOpen(false)}
           footer={null}
+          width={900}
         >
           <Form
             form={form}
             layout="vertical"
+            initialValues={{
+              isPublic: true,
+              maxProjects: 3,
+              accessRules: [],
+            }}
             onFinish={(values) => {
-              createPositionMutation.mutate({
-                title: values.title,
-                shortDescription: values.shortDescription,
-                isPublic: values.isPublic,
-                maxProjects: values.maxProjects,
-                projectTags: values.projectTags || [],
-                attributes: values.attributeIds.map((attributeId) => ({
-                  attributeId,
-                  isRequired:
-                    values.requiredAttributeIds?.includes(attributeId) || false,
-                })),
-              });
+              createPositionMutation.mutate(buildPositionPayload(values));
             }}
           >
             <Form.Item
               label={t("positions.titleColumn", "Title")}
               name="title"
-              rules={[{ required: true, message: t("positions.positionTitleRequired", "Position title is required") }]}
+              rules={[
+                {
+                  required: true,
+                  message: t(
+                    "positions.positionTitleRequired",
+                    "Position title is required",
+                  ),
+                },
+              ]}
             >
-              <Input placeholder={t("positions.titlePlaceholder", "Example: Frontend Developer")} />
+              <Input
+                placeholder={t(
+                  "positions.titlePlaceholder",
+                  "Example: Frontend Developer",
+                )}
+              />
             </Form.Item>
-            <Form.Item label={t("positions.shortDescription", "Short Description")} name="shortDescription">
+            <Form.Item
+              label={t("positions.shortDescription", "Short Description")}
+              name="shortDescription"
+            >
               <Input.TextArea
                 rows={3}
-                placeholder={t("positions.shortDescriptionPlaceholder", "Short description for candidates")}
+                placeholder={t(
+                  "positions.shortDescriptionPlaceholder",
+                  "Short description for candidates",
+                )}
               />
             </Form.Item>
             <Form.Item
               label={t("positions.publicPosition", "Public Position")}
               name="isPublic"
               valuePropName="checked"
-              initialValue={true}
             >
               <Switch />
             </Form.Item>
-            <Form.Item label={t("positions.maxProjects", "Max Projects")} name="maxProjects" initialValue={3}>
+            <Form.Item
+              label={t("positions.accessRules", "Access Rules")}
+              style={{ marginBottom: 16 }}
+            >
+              <AccessRulesEditor
+                form={form}
+                fieldName="accessRules"
+                attributes={attributes}
+                t={t}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.maxProjects", "Max Projects")}
+              name="maxProjects"
+            >
               <InputNumber min={0} max={10} style={{ width: "100%" }} />
             </Form.Item>
-            <Form.Item label={t("positions.projectTags", "Project Tags")} name="projectTags">
-              <Select mode="tags" placeholder={t("positions.projectTagsPlaceholder", "Add project tags")} />
+            <Form.Item
+              label={t("positions.projectTags", "Project Tags")}
+              name="projectTags"
+            >
+              <Select
+                mode="tags"
+                placeholder={t("positions.projectTagsPlaceholder", "Add project tags")}
+              />
             </Form.Item>
             <Form.Item
               label={t("positions.positionAttributes", "Position Attributes")}
               name="attributeIds"
               rules={[
-                { required: true, message: t("positions.selectAtLeastOneAttribute", "Select at least one attribute") },
+                {
+                  required: true,
+                  message: t(
+                    "positions.selectAtLeastOneAttribute",
+                    "Select at least one attribute",
+                  ),
+                },
               ]}
             >
               <Select
                 mode="multiple"
                 loading={isAttributesLoading}
-                placeholder={t("positions.attributesPlaceholder", "Select attributes for this position")}
+                placeholder={t(
+                  "positions.attributesPlaceholder",
+                  "Select attributes for this position",
+                )}
                 options={attributes.map((attribute) => ({
                   label: `${attribute.name} (${attribute.type})`,
                   value: attribute.id,
                 }))}
               />
             </Form.Item>
-            {selectedCreateAttributeIds.length > 0 && (
-              <Form.Item label={t("positions.requiredAttributes", "Required Attributes")} name="requiredAttributeIds">
+            {selectedCreateAttributeIds.length > 0 ? (
+              <Form.Item
+                label={t("positions.requiredAttributes", "Required Attributes")}
+                name="requiredAttributeIds"
+              >
                 <Checkbox.Group
                   options={attributes
                     .filter((attribute) =>
@@ -449,7 +801,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                     }))}
                 />
               </Form.Item>
-            )}
+            ) : null}
             <Button
               type="primary"
               htmlType="submit"
@@ -457,7 +809,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             >
               {t("positions.savePosition", "Save Position")}
             </Button>
-          </Form>{" "}
+          </Form>
         </Modal>
       ) : null}
 
@@ -467,96 +819,141 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           open={isEditModalOpen}
           onCancel={() => setIsEditModalOpen(false)}
           footer={null}
+          width={900}
         >
           <Form
             form={editForm}
             layout="vertical"
             onFinish={(values) => {
-              if (!selectedPosition) return;
+              if (!selectedPosition) {
+                return;
+              }
 
               updatePositionMutation.mutate({
                 id: selectedPosition.id,
                 values: {
-                  title: values.title,
-                  shortDescription: values.shortDescription,
-                  isPublic: values.isPublic,
-                  maxProjects: values.maxProjects,
-                  projectTags: values.projectTags || [],
+                  ...buildPositionPayload(values),
                   version: values.version,
-                  attributes: values.attributeIds.map((attributeId) => ({
-                    attributeId,
-                    isRequired:
-                      values.requiredAttributeIds?.includes(attributeId) || false,
-                  })),
                 },
               });
             }}
           >
-          <Form.Item
-            label={t("positions.titleColumn", "Title")}
-            name="title"
-            rules={[{ required: true, message: t("positions.positionTitleRequired", "Position title is required") }]}
-          >
-            <Input placeholder={t("positions.titlePlaceholder", "Example: Frontend Developer")} />
-          </Form.Item>
-          <Form.Item label={t("positions.shortDescription", "Short Description")} name="shortDescription">
-            <Input.TextArea
-              rows={3}
-              placeholder={t("positions.shortDescriptionPlaceholder", "Short description for candidates")}
-            />
-          </Form.Item>
-          <Form.Item
-            label={t("positions.publicPosition", "Public Position")}
-            name="isPublic"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-          <Form.Item label={t("positions.maxProjects", "Max Projects")} name="maxProjects">
-            <InputNumber min={0} max={10} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item label={t("positions.projectTags", "Project Tags")} name="projectTags">
-            <Select mode="tags" placeholder={t("positions.projectTagsPlaceholder", "Add project tags")} />
-          </Form.Item>
-          <Form.Item
-            label={t("positions.positionAttributes", "Position Attributes")}
-            name="attributeIds"
-            rules={[
-              { required: true, message: t("positions.selectAtLeastOneAttribute", "Select at least one attribute") },
-            ]}
-          >
-            <Select
-              mode="multiple"
-              loading={isAttributesLoading}
-              placeholder={t("positions.attributesPlaceholder", "Select attributes for this position")}
-              options={attributes.map((attribute) => ({
-                label: `${attribute.name} (${attribute.type})`,
-                value: attribute.id,
-              }))}
-            />
-          </Form.Item>
-          {selectedEditAttributeIds.length > 0 && (
-            <Form.Item label={t("positions.requiredAttributes", "Required Attributes")} name="requiredAttributeIds">
-              <Checkbox.Group
-                options={attributes
-                  .filter((attribute) =>
-                    selectedEditAttributeIds.includes(attribute.id),
-                  )
-                  .map((attribute) => ({
-                    label: attribute.name,
-                    value: attribute.id,
-                  }))}
+            <Form.Item
+              label={t("positions.titleColumn", "Title")}
+              name="title"
+              rules={[
+                {
+                  required: true,
+                  message: t(
+                    "positions.positionTitleRequired",
+                    "Position title is required",
+                  ),
+                },
+              ]}
+            >
+              <Input
+                placeholder={t(
+                  "positions.titlePlaceholder",
+                  "Example: Frontend Developer",
+                )}
               />
             </Form.Item>
-          )}
-          <Form.Item name="version" hidden>
-            <Input />
-          </Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={updatePositionMutation.isPending}
-          >
+            <Form.Item
+              label={t("positions.shortDescription", "Short Description")}
+              name="shortDescription"
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder={t(
+                  "positions.shortDescriptionPlaceholder",
+                  "Short description for candidates",
+                )}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.publicPosition", "Public Position")}
+              name="isPublic"
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.accessRules", "Access Rules")}
+              style={{ marginBottom: 16 }}
+            >
+              <AccessRulesEditor
+                form={editForm}
+                fieldName="accessRules"
+                attributes={attributes}
+                t={t}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.maxProjects", "Max Projects")}
+              name="maxProjects"
+            >
+              <InputNumber min={0} max={10} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.projectTags", "Project Tags")}
+              name="projectTags"
+            >
+              <Select
+                mode="tags"
+                placeholder={t("positions.projectTagsPlaceholder", "Add project tags")}
+              />
+            </Form.Item>
+            <Form.Item
+              label={t("positions.positionAttributes", "Position Attributes")}
+              name="attributeIds"
+              rules={[
+                {
+                  required: true,
+                  message: t(
+                    "positions.selectAtLeastOneAttribute",
+                    "Select at least one attribute",
+                  ),
+                },
+              ]}
+            >
+              <Select
+                mode="multiple"
+                loading={isAttributesLoading}
+                placeholder={t(
+                  "positions.attributesPlaceholder",
+                  "Select attributes for this position",
+                )}
+                options={attributes.map((attribute) => ({
+                  label: `${attribute.name} (${attribute.type})`,
+                  value: attribute.id,
+                }))}
+              />
+            </Form.Item>
+            {selectedEditAttributeIds.length > 0 ? (
+              <Form.Item
+                label={t("positions.requiredAttributes", "Required Attributes")}
+                name="requiredAttributeIds"
+              >
+                <Checkbox.Group
+                  options={attributes
+                    .filter((attribute) =>
+                      selectedEditAttributeIds.includes(attribute.id),
+                    )
+                    .map((attribute) => ({
+                      label: attribute.name,
+                      value: attribute.id,
+                    }))}
+                />
+              </Form.Item>
+            ) : null}
+            <Form.Item name="version" hidden>
+              <Input />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={updatePositionMutation.isPending}
+            >
               {t("projects.saveChanges", "Save Changes")}
             </Button>
           </Form>
