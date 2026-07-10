@@ -30,12 +30,14 @@ import {
   canManagePositions,
   canViewPublishedCvs,
 } from "../utils/roles";
+import { PositionDiscussion } from "../components/PositionDiscussion";
 
 const { Title, Text } = Typography;
 
 export function PositionsPage({ user, onViewPublishedCvs }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
@@ -253,6 +255,17 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             </Button>
           ) : null}
 
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            onClick={() => {
+              if (!selectedPosition) return;
+
+              setIsDiscussionOpen(true);
+            }}
+          >
+            Discussion
+          </Button>
+
           {showManagePositions ? (
             <Button
               disabled={selectedPositionIds.length !== 1}
@@ -331,6 +344,13 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           selectedRowKeys: selectedPositionIds,
           onChange: setSelectedPositionIds,
         }}
+      />
+
+      <PositionDiscussion
+        open={isDiscussionOpen}
+        positionId={selectedPosition?.id}
+        positionTitle={selectedPosition?.title}
+        onClose={() => setIsDiscussionOpen(false)}
       />
 
       {showManagePositions ? (

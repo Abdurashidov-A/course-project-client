@@ -18,6 +18,20 @@ export async function duplicatePosition(id) {
   return response.data;
 }
 
+export async function getPositionDiscussions(positionId) {
+  const response = await api.get(`/api/positions/${positionId}/discussions`);
+
+  return response.data;
+}
+
+export async function createPositionDiscussionPost(positionId, content) {
+  const response = await api.post(`/api/positions/${positionId}/discussions`, {
+    content,
+  });
+
+  return response.data;
+}
+
 export async function deletePositions(ids) {
   const response = await api.delete("/api/positions", {
     data: { ids },
