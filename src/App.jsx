@@ -14,6 +14,7 @@ import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
 import {
   canManageLibrary,
+  canManageUsers,
   canViewPublishedCvs,
   isCandidate,
 } from "./utils/roles";
@@ -26,6 +27,7 @@ import { MyCvsPage } from "./pages/MyCvsPage";
 import { MyProjectsPage } from "./pages/MyProjectsPage";
 import { CvPreviewPage } from "./pages/CvPreviewPage";
 import { PositionCvsPage } from "./pages/PositionCvsPage";
+import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { useI18n } from "./i18n/I18nProvider";
@@ -81,6 +83,15 @@ function getMenuItems(user, t) {
         description: "Reusable attributes managed by recruiters.",
       },
     );
+  }
+
+  if (canManageUsers(user)) {
+    items.push({
+      key: "admin-users",
+      label: t("nav.adminUsers", "Users"),
+      title: t("adminUsers.title", "Admin Users"),
+      description: "Admin-only user management table.",
+    });
   }
 
   return items;
@@ -221,6 +232,8 @@ export default function App() {
                           setSelectedPageKey("cv-preview");
                         }}
                       />
+                    ) : selectedPageKey === "admin-users" ? (
+                      <AdminUsersPage user={user} />
                     ) : selectedPageKey === "cv-preview" ? (
                       <CvPreviewPage
                         cvId={selectedCvId}

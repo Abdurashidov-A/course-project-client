@@ -55,3 +55,7 @@ export function canCreateCv(user) {
 export function canViewPublishedCvs(user) {
   return Boolean(isRecruiter(user) || isAdmin(user));
 }
+
+export function canManageUsers(user) {
+  return Boolean(isAdmin(user));
+}
