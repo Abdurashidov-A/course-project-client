@@ -15,6 +15,7 @@ import {
   createPositionDiscussionPost,
   getPositionDiscussions,
 } from "../api/positionApi";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -29,6 +30,7 @@ function formatDate(value) {
 
 export function PositionDiscussion({ positionId, positionTitle, open, onClose }) {
   const [content, setContent] = useState("");
+  const { t } = useI18n();
 
   const {
     data,
@@ -46,7 +48,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
   const createPostMutation = useMutation({
     mutationFn: () => createPositionDiscussionPost(positionId, content.trim()),
     onSuccess: async () => {
-      message.success("Discussion post added");
+      message.success(t("discussion.added", "Discussion post added"));
       setContent("");
       await refetch();
     },
@@ -54,19 +56,20 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
       if (requestError.response?.status === 403) {
         message.warning(
           requestError.response?.data?.message ||
-            "You do not have access to this discussion.",
+            t("discussion.noAccess", "You do not have access to this discussion."),
         );
         return;
       }
 
       if (requestError.response?.status === 400) {
         message.warning(
-          requestError.response?.data?.message || "Discussion content is invalid.",
+          requestError.response?.data?.message ||
+            t("discussion.invalid", "Discussion content is invalid."),
         );
         return;
       }
 
-      message.error("Failed to post discussion message");
+      message.error(t("discussion.postError", "Failed to post discussion message"));
     },
   });
 
@@ -80,7 +83,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
 
   return (
     <Modal
-      title={`Discussion — ${positionTitle || "Position"}`}
+      title={`${t("discussion.title", "Discussion")} — ${positionTitle || t("nav.positions", "Position")}`}
       open={open}
       onCancel={onClose}
       footer={null}
@@ -90,17 +93,20 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
         <div>
           <Title level={5} style={{ marginBottom: 4 }}>
-            Position Discussion
+            {t("discussion.positionTitle", "Position Discussion")}
           </Title>
           <Text type="secondary">
-            Posts appear oldest to newest and refresh every 5 seconds while open.
+            {t(
+              "discussion.subtitle",
+              "Posts appear oldest to newest and refresh every 5 seconds while open.",
+            )}
           </Text>
         </div>
 
         {isError ? (
           <Alert
             type="error"
-            message="Failed to load discussion"
+            message={t("discussion.loadError", "Failed to load discussion")}
             description={error?.response?.data?.message}
             showIcon
           />
@@ -111,14 +117,16 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
           loading={isLoading}
           dataSource={data?.posts || []}
           locale={{
-            emptyText: <Empty description="No discussion posts yet" />,
+            emptyText: (
+              <Empty description={t("discussion.noPosts", "No discussion posts yet")} />
+            ),
           }}
           renderItem={(post) => (
             <List.Item>
               <Space direction="vertical" size={4} style={{ width: "100%" }}>
                 <Space wrap>
-                  <Text strong>{post.author?.name || "Unknown user"}</Text>
-                  <Text type="secondary">{post.author?.email || "—"}</Text>
+                  <Text strong>{post.author?.name || t("discussion.unknownUser", "Unknown user")}</Text>
+                  <Text type="secondary">{post.author?.email || t("common.none", "—")}</Text>
                   <Text type="secondary">{formatDate(post.createdAt)}</Text>
                 </Space>
                 <Text style={{ whiteSpace: "pre-wrap" }}>{post.content}</Text>
@@ -133,7 +141,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
             value={content}
             onChange={(event) => setContent(event.target.value)}
             maxLength={1000}
-            placeholder="Write your message"
+            placeholder={t("discussion.placeholder", "Write your message")}
           />
           <Space style={{ width: "100%", justifyContent: "space-between" }}>
             <Text type="secondary">{content.trim().length}/1000</Text>
@@ -143,7 +151,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
               loading={createPostMutation.isPending}
               disabled={!content.trim()}
             >
-              Post
+              {t("discussion.post", "Post")}
             </Button>
           </Space>
         </Space>

@@ -20,6 +20,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { getCvById, likeCv, publishCv, unlikeCv } from "../api/cvApi";
 import { saveProfileAttribute } from "../api/profileAttributeApi";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -37,31 +38,31 @@ function formatPeriod(start, end) {
   return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
-function renderAttributeValue(record) {
+function renderAttributeValue(record, t) {
   const value = record.value;
 
   if (record.isMissing) {
-    return <Text type="secondary">Missing</Text>;
+    return <Text type="secondary">{t("missing.missing", "Missing")}</Text>;
   }
 
   if (record.type === "STRING" || record.type === "SELECT") {
-    return value.stringValue || "—";
+    return value.stringValue || t("common.none", "—");
   }
 
   if (record.type === "TEXT") {
-    return value.textValue || "—";
+    return value.textValue || t("common.none", "—");
   }
 
   if (record.type === "NUMERIC") {
-    return value.numericValue ?? "—";
+    return value.numericValue ?? t("common.none", "—");
   }
 
   if (record.type === "BOOLEAN") {
     if (value.booleanValue === null) {
-      return "—";
+      return t("common.none", "—");
     }
 
-    return value.booleanValue ? "Yes" : "No";
+    return value.booleanValue ? t("common.yes", "Yes") : t("common.no", "No");
   }
 
   if (record.type === "DATE") {
@@ -76,10 +77,10 @@ function renderAttributeValue(record) {
   }
 
   if (record.type === "IMAGE") {
-    return value.imageUrl || "—";
+    return value.imageUrl || t("common.none", "—");
   }
 
-  return "—";
+  return t("common.none", "—");
 }
 
 function getFormValue(attribute) {
@@ -154,21 +155,26 @@ function buildSavePayload(attribute, value) {
   return payload;
 }
 
-function renderValueInput(attribute) {
+function renderValueInput(attribute, t) {
   if (!attribute) {
-    return <Input disabled placeholder="Select attribute first" />;
+    return <Input disabled placeholder={t("profile.attributePlaceholder", "Select attribute")} />;
   }
 
   if (attribute.type === "TEXT") {
-    return <TextArea rows={4} placeholder="Enter text value" />;
+    return <TextArea rows={4} placeholder={t("cvPreview.value", "Value")} />;
   }
 
   if (attribute.type === "NUMERIC") {
-    return <InputNumber style={{ width: "100%" }} placeholder="Enter number" />;
+    return <InputNumber style={{ width: "100%" }} placeholder={t("attributeType.NUMERIC", "Numeric")} />;
   }
 
   if (attribute.type === "BOOLEAN") {
-    return <Switch checkedChildren="Yes" unCheckedChildren="No" />;
+    return (
+      <Switch
+        checkedChildren={t("common.yes", "Yes")}
+        unCheckedChildren={t("common.no", "No")}
+      />
+    );
   }
 
   if (attribute.type === "DATE") {
@@ -180,13 +186,13 @@ function renderValueInput(attribute) {
   }
 
   if (attribute.type === "IMAGE") {
-    return <Input placeholder="Enter image URL" />;
+    return <Input placeholder="https://..." />;
   }
 
   if (attribute.type === "SELECT" && attribute.options?.length > 0) {
     return (
       <Select
-        placeholder="Select value"
+        placeholder={t("profile.value", "Value")}
         options={attribute.options.map((option) => ({
           label: option.value,
           value: option.value,
@@ -195,10 +201,11 @@ function renderValueInput(attribute) {
     );
   }
 
-  return <Input placeholder="Enter value" />;
+  return <Input placeholder={t("profile.value", "Value")} />;
 }
 
 export function CvPreviewPage({ cvId, onBack }) {
+  const { t } = useI18n();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [missingPublishAttributes, setMissingPublishAttributes] = useState([]);
@@ -228,7 +235,7 @@ export function CvPreviewPage({ cvId, onBack }) {
     mutationFn: ({ attributeId, payload }) =>
       saveProfileAttribute(attributeId, payload),
     onSuccess: async () => {
-      message.success("Profile attribute saved");
+      message.success(t("cvPreview.saveSuccess", "Profile attribute saved"));
       setMissingPublishAttributes([]);
       setIsModalOpen(false);
       setSelectedRowKeys([]);
@@ -238,19 +245,22 @@ export function CvPreviewPage({ cvId, onBack }) {
     onError: (error) => {
       if (error.response?.status === 409) {
         message.warning(
-          "This value was changed elsewhere. Please reload and try again.",
+          t(
+            "cvPreview.saveConflict",
+            "This value was changed elsewhere. Please reload and try again.",
+          ),
         );
         return;
       }
 
-      message.error("Failed to save profile attribute");
+      message.error(t("cvPreview.saveError", "Failed to save profile attribute"));
     },
   });
 
   const publishMutation = useMutation({
     mutationFn: ({ id, version }) => publishCv(id, version),
     onSuccess: async () => {
-      message.success("CV published successfully");
+      message.success(t("cvPreview.publishSuccess", "CV published successfully"));
       setMissingPublishAttributes([]);
       await refetch();
     },
@@ -258,18 +268,21 @@ export function CvPreviewPage({ cvId, onBack }) {
       if (error.response?.status === 400) {
         const missingAttributes = error.response?.data?.missingAttributes || [];
         setMissingPublishAttributes(missingAttributes);
-        message.warning("Cannot publish CV while some attributes are missing");
-        return;
-      }
-
-      if (error.response?.status === 409) {
         message.warning(
-          "CV was changed elsewhere. Please reload and try again.",
+          t(
+            "cvPreview.publishBlocked",
+            "Cannot publish CV while some attributes are missing",
+          ),
         );
         return;
       }
 
-      message.error("Failed to publish CV");
+      if (error.response?.status === 409) {
+        message.warning(t("cvPreview.publishConflict", "CV was changed elsewhere. Please reload and try again."));
+        return;
+      }
+
+      message.error(t("cvPreview.publishError", "Failed to publish CV"));
     },
   });
 
@@ -277,7 +290,11 @@ export function CvPreviewPage({ cvId, onBack }) {
     mutationFn: ({ shouldLike, id }) =>
       shouldLike ? likeCv(id) : unlikeCv(id),
     onSuccess: async (_, variables) => {
-      message.success(variables.shouldLike ? "CV liked" : "Like removed");
+      message.success(
+        variables.shouldLike
+          ? t("cvPreview.likeAdded", "CV liked")
+          : t("cvPreview.likeRemoved", "Like removed"),
+      );
       await Promise.all([
         refetch(),
         queryClient.invalidateQueries({ queryKey: ["position-cvs"] }),
@@ -286,11 +303,11 @@ export function CvPreviewPage({ cvId, onBack }) {
     },
     onError: (error) => {
       if (error.response?.status === 403) {
-        message.warning(error.response?.data?.message || "You cannot like this CV");
+        message.warning(error.response?.data?.message || t("cvPreview.likeError", "Failed to update CV like"));
         return;
       }
 
-      message.error("Failed to update CV like");
+      message.error(t("cvPreview.likeError", "Failed to update CV like"));
     },
   });
 
@@ -306,62 +323,67 @@ export function CvPreviewPage({ cvId, onBack }) {
 
   const columns = [
     {
-      title: "Attribute Name",
+      title: t("cvPreview.attributeName", "Attribute Name"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Category",
+      title: t("attributeLibrary.category", "Category"),
       dataIndex: "category",
       key: "category",
+      render: (category) => t(`attributeCategory.${category}`, category),
     },
     {
-      title: "Type",
+      title: t("attributeLibrary.type", "Type"),
       dataIndex: "type",
       key: "type",
+      render: (type) => t(`attributeType.${type}`, type),
     },
     {
-      title: "Required",
+      title: t("cvPreview.required", "Required"),
       dataIndex: "isRequired",
       key: "isRequired",
-      render: (isRequired) => (isRequired ? "Yes" : "No"),
+      render: (isRequired) =>
+        isRequired ? t("common.yes", "Yes") : t("common.no", "No"),
     },
     {
-      title: "Value",
+      title: t("cvPreview.value", "Value"),
       key: "value",
-      render: (_, record) => renderAttributeValue(record),
+      render: (_, record) => renderAttributeValue(record, t),
     },
     {
-      title: "Missing",
+      title: t("cvPreview.missing", "Missing"),
       dataIndex: "isMissing",
       key: "isMissing",
       render: (isMissing, record) =>
         isMissing ? (
-          <Tag color={record.isRequired ? "red" : "orange"}>Missing</Tag>
+          <Tag color={record.isRequired ? "red" : "orange"}>
+            {t("missing.missing", "Missing")}
+          </Tag>
         ) : (
-          <Tag color="green">Complete</Tag>
+          <Tag color="green">{t("missing.complete", "Complete")}</Tag>
         ),
     },
   ];
 
   const projectColumns = [
     {
-      title: "Name",
+      title: t("projects.name", "Name"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Period",
+      title: t("projects.period", "Period"),
       key: "period",
       render: (_, record) => formatPeriod(record.periodStart, record.periodEnd),
     },
     {
-      title: "Technology Tags",
+      title: t("projects.technologyTags", "Technology Tags"),
       dataIndex: "technologyTags",
       key: "technologyTags",
       render: (technologyTags) => {
         if (!technologyTags || technologyTags.length === 0) {
-          return <Text type="secondary">No tags</Text>;
+          return <Text type="secondary">{t("common.noTags", "No tags")}</Text>;
         }
 
         return (
@@ -374,18 +396,19 @@ export function CvPreviewPage({ cvId, onBack }) {
       },
     },
     {
-      title: "Description",
+      title: t("projects.description", "Description"),
       dataIndex: "description",
       key: "description",
-      render: (description) => description || <Text type="secondary">No description</Text>,
+      render: (description) =>
+        description || <Text type="secondary">{t("common.noDescription", "No description")}</Text>,
     },
   ];
 
   if (!cvId) {
     return (
       <Space direction="vertical" size="middle">
-        <Button onClick={onBack}>Back to My CVs</Button>
-        <Empty description="Select a CV to preview" />
+        <Button onClick={onBack}>{t("cvPreview.backToMyCvs", "Back to My CVs")}</Button>
+        <Empty description={t("cvPreview.selectCv", "Select a CV to preview")} />
       </Space>
     );
   }
@@ -393,8 +416,8 @@ export function CvPreviewPage({ cvId, onBack }) {
   if (isError) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        <Button onClick={onBack}>Back to My CVs</Button>
-        <Alert type="error" message="Failed to load CV preview" />
+        <Button onClick={onBack}>{t("cvPreview.backToMyCvs", "Back to My CVs")}</Button>
+        <Alert type="error" message={t("cvPreview.loadError", "Failed to load CV preview")} />
       </Space>
     );
   }
@@ -443,22 +466,28 @@ export function CvPreviewPage({ cvId, onBack }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
       <Button onClick={onBack} style={{ width: "fit-content" }}>
-        Back to My CVs
+        {t("cvPreview.backToMyCvs", "Back to My CVs")}
       </Button>
 
       <div>
         <Title level={2} style={{ marginBottom: 8 }}>
-          {data?.position?.title || "CV Preview"}
+          {data?.position?.title || t("cvPreview.titleFallback", "CV Preview")}
         </Title>
         <Text type="secondary">
-          {data?.position?.shortDescription || "No short description"}
+          {data?.position?.shortDescription || t("common.noShortDescription", "No short description")}
         </Text>
       </div>
 
       <Space wrap>
-        <Tag color="blue">Status: {data?.status || "—"}</Tag>
-        <Tag>Version: {data?.version ?? "—"}</Tag>
-        <Tag color="purple">Likes: {data?.likesCount ?? 0}</Tag>
+        <Tag color="blue">
+          {t("cvPreview.status", "Status")}: {t(`status.${data?.status}`, data?.status || "—")}
+        </Tag>
+        <Tag>
+          {t("common.version", "Version")}: {data?.version ?? t("common.none", "—")}
+        </Tag>
+        <Tag color="purple">
+          {t("cvPreview.likes", "Likes")}: {data?.likesCount ?? 0}
+        </Tag>
         {canEditValues ? (
           <Button
             type="primary"
@@ -466,14 +495,18 @@ export function CvPreviewPage({ cvId, onBack }) {
             loading={publishMutation.isPending}
             onClick={handlePublish}
           >
-            {data?.status === "PUBLISHED" ? "Published" : "Publish"}
+            {data?.status === "PUBLISHED"
+              ? t("status.PUBLISHED", "Published")
+              : t("cvPreview.publish", "Publish")}
           </Button>
         ) : (
-          <Tag color="default">Read-only view</Tag>
+          <Tag color="default">{t("common.readOnly", "Read-only view")}</Tag>
         )}
         {canLike ? (
           <Button loading={likeMutation.isPending} onClick={handleLikeToggle}>
-            {data?.likedByCurrentUser ? "Unlike" : "Like"}
+            {data?.likedByCurrentUser
+              ? t("cvPreview.unlike", "Unlike")
+              : t("cvPreview.like", "Like")}
           </Button>
         ) : null}
       </Space>
@@ -481,7 +514,10 @@ export function CvPreviewPage({ cvId, onBack }) {
       {missingPublishAttributes.length > 0 ? (
         <Alert
           type="warning"
-          message="Cannot publish CV while some attributes are missing"
+          message={t(
+            "cvPreview.publishBlocked",
+            "Cannot publish CV while some attributes are missing",
+          )}
           description={missingPublishAttributes
             .map((attribute) => attribute.name)
             .join(", ")}
@@ -491,15 +527,19 @@ export function CvPreviewPage({ cvId, onBack }) {
 
       {canEditValues ? (
         <Space wrap>
-          <Text type="secondary">Selected: {selectedRowKeys.length}</Text>
+          <Text type="secondary">
+            {t("common.selected", "Selected")}: {selectedRowKeys.length}
+          </Text>
           {selectedRowKeys.length > 1 ? (
-            <Text type="warning">Select only one attribute to edit</Text>
+            <Text type="warning">
+              {t("cvPreview.selectedOne", "Select only one attribute to edit")}
+            </Text>
           ) : null}
           <Button
             disabled={selectedRowKeys.length !== 1}
             onClick={handleEditValue}
           >
-            Edit Value
+            {t("cvPreview.editValue", "Edit Value")}
           </Button>
         </Space>
       ) : null}
@@ -519,13 +559,13 @@ export function CvPreviewPage({ cvId, onBack }) {
             : undefined
         }
         locale={{
-          emptyText: <Empty description="No attributes found" />,
+          emptyText: <Empty description={t("cvPreview.noAttributes", "No attributes found")} />,
         }}
       />
 
       <div>
         <Title level={3} style={{ marginBottom: 12 }}>
-          Projects
+          {t("cvPreview.projects", "Projects")}
         </Title>
 
         {data?.position?.projectTags?.length ? (
@@ -542,14 +582,14 @@ export function CvPreviewPage({ cvId, onBack }) {
           dataSource={data?.projects || []}
           pagination={{ pageSize: 10 }}
           locale={{
-            emptyText: <Empty description="No projects added yet." />,
+            emptyText: <Empty description={t("cvPreview.noProjects", "No projects added yet.")} />,
           }}
         />
       </div>
 
       {canEditValues ? (
         <Modal
-          title={selectedAttribute ? `Edit ${selectedAttribute.name}` : "Edit Value"}
+          title={selectedAttribute ? `${t("common.edit", "Edit")} ${selectedAttribute.name}` : t("cvPreview.editModalTitle", "Edit Value")}
           open={isModalOpen}
           onCancel={() => setIsModalOpen(false)}
           onOk={() => form.submit()}
@@ -557,19 +597,19 @@ export function CvPreviewPage({ cvId, onBack }) {
           destroyOnHidden
         >
           <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Form.Item label="Attribute">
+            <Form.Item label={t("profile.attribute", "Attribute")}>
               <Input value={selectedAttribute?.name} disabled />
             </Form.Item>
 
             <Form.Item
               key={selectedAttribute?.type || "empty"}
-              label="Value"
+              label={t("cvPreview.value", "Value")}
               name="value"
               valuePropName={
                 selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
               }
             >
-              {renderValueInput(selectedAttribute)}
+              {renderValueInput(selectedAttribute, t)}
             </Form.Item>
           </Form>
         </Modal>

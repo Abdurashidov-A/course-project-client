@@ -19,33 +19,35 @@ import {
 } from "../api/attributeApi";
 import { useState } from "react";
 import { canManageLibrary } from "../utils/roles";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
-const categoryOptions = [
-  { label: "Personal Information", value: "PERSONAL_INFORMATION" },
-  { label: "Certification", value: "CERTIFICATION" },
-  { label: "Domain Knowledge", value: "DOMAIN_KNOWLEDGE" },
-  { label: "Soft Skills", value: "SOFT_SKILLS" },
-  { label: "Technical Skills", value: "TECHNICAL_SKILLS" },
-  { label: "Language", value: "LANGUAGE" },
-  { label: "Education", value: "EDUCATION" },
-  { label: "Experience", value: "EXPERIENCE" },
-  { label: "Other", value: "OTHER" },
+const categoryValues = [
+  "PERSONAL_INFORMATION",
+  "CERTIFICATION",
+  "DOMAIN_KNOWLEDGE",
+  "SOFT_SKILLS",
+  "TECHNICAL_SKILLS",
+  "LANGUAGE",
+  "EDUCATION",
+  "EXPERIENCE",
+  "OTHER",
 ];
 
-const typeOptions = [
-  { label: "String", value: "STRING" },
-  { label: "Text", value: "TEXT" },
-  { label: "Image", value: "IMAGE" },
-  { label: "Numeric", value: "NUMERIC" },
-  { label: "Date", value: "DATE" },
-  { label: "Period", value: "PERIOD" },
-  { label: "Boolean", value: "BOOLEAN" },
-  { label: "Dropdown", value: "SELECT" },
+const typeValues = [
+  "STRING",
+  "TEXT",
+  "IMAGE",
+  "NUMERIC",
+  "DATE",
+  "PERIOD",
+  "BOOLEAN",
+  "SELECT",
 ];
 
 export function AttributeLibraryPage({ user }) {
+  const { t } = useI18n();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
@@ -103,44 +105,55 @@ export function AttributeLibraryPage({ user }) {
   );
 
   if (!canManageLibrary(user)) {
-    return <Alert type="warning" message="You do not have access to this page" />;
+    return <Alert type="warning" message={t("attributeLibrary.noAccess", "You do not have access to this page")} />;
   }
+
+  const categoryOptions = categoryValues.map((value) => ({
+    label: t(`attributeCategory.${value}`, value),
+    value,
+  }));
+
+  const typeOptions = typeValues.map((value) => ({
+    label: t(`attributeType.${value}`, value),
+    value,
+  }));
 
   const columns = [
     {
-      title: "Name",
+      title: t("attributeLibrary.name", "Name"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Category",
+      title: t("attributeLibrary.category", "Category"),
       dataIndex: "category",
       key: "category",
-      render: (category) => <Tag>{category}</Tag>,
+      render: (category) => <Tag>{t(`attributeCategory.${category}`, category)}</Tag>,
     },
     {
-      title: "Type",
+      title: t("attributeLibrary.type", "Type"),
       dataIndex: "type",
       key: "type",
+      render: (type) => t(`attributeType.${type}`, type),
     },
     {
-      title: "Description",
+      title: t("attributeLibrary.description", "Description"),
       dataIndex: "description",
       key: "description",
       render: (description) =>
-        description || <Text type="secondary">No description</Text>,
+        description || <Text type="secondary">{t("common.noDescription", "No description")}</Text>,
     },
     {
-      title: "Options",
+      title: t("attributeLibrary.options", "Options"),
       dataIndex: "options",
       key: "options",
       render: (options, record) => {
         if (record.type !== "SELECT") {
-          return <Text type="secondary">—</Text>;
+          return <Text type="secondary">{t("common.none", "—")}</Text>;
         }
 
         if (!options || options.length === 0) {
-          return <Text type="secondary">No options</Text>;
+          return <Text type="secondary">{t("attributeLibrary.noOptions", "No options")}</Text>;
         }
 
         return (
@@ -155,7 +168,7 @@ export function AttributeLibraryPage({ user }) {
   ];
 
   if (isError) {
-    return <Text type="danger">Failed to load attributes</Text>;
+    return <Text type="danger">{t("attributeLibrary.loadError", "Failed to load attributes")}</Text>;
   }
 
   return (
@@ -168,17 +181,17 @@ export function AttributeLibraryPage({ user }) {
         }}
       >
         <Title level={2} style={{ margin: 0 }}>
-          Attribute Library
+          {t("attributeLibrary.title", "Attribute Library")}
         </Title>
 
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-          Create Attribute
+          {t("attributeLibrary.createAttribute", "Create Attribute")}
         </Button>
       </Space>
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
-          placeholder="Search attributes by name"
+          placeholder={t("attributeLibrary.searchPlaceholder", "Search attributes by name")}
           allowClear
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -186,7 +199,7 @@ export function AttributeLibraryPage({ user }) {
         />
 
         <Select
-          placeholder="Filter by category"
+          placeholder={t("attributeLibrary.filterCategory", "Filter by category")}
           allowClear
           value={categoryFilter}
           onChange={setCategoryFilter}
@@ -196,7 +209,9 @@ export function AttributeLibraryPage({ user }) {
       </Space>
 
       <Space style={{ marginBottom: 16 }} wrap>
-        <Text type="secondary">Selected: {selectedAttributeIds.length}</Text>
+        <Text type="secondary">
+          {t("common.selected", "Selected")}: {selectedAttributeIds.length}
+        </Text>
 
         <Button
           disabled={selectedAttributeIds.length !== 1}
@@ -217,7 +232,7 @@ export function AttributeLibraryPage({ user }) {
             setIsEditModalOpen(true);
           }}
         >
-          Edit Selected
+          {t("attributeLibrary.editSelected", "Edit Selected")}
         </Button>
 
         <Button
@@ -226,16 +241,19 @@ export function AttributeLibraryPage({ user }) {
           loading={deleteAttributesMutation.isPending}
           onClick={() => {
             Modal.confirm({
-              title: "Delete selected attributes?",
+              title: t("attributeLibrary.deleteConfirmTitle", "Delete selected attributes?"),
               content:
-                "This action will also delete dropdown options for selected attributes.",
-              okText: "Delete",
+                t(
+                  "attributeLibrary.deleteConfirmBody",
+                  "This action will also delete dropdown options for selected attributes.",
+                ),
+              okText: t("common.delete", "Delete"),
               okButtonProps: { danger: true },
               onOk: () => deleteAttributesMutation.mutate(selectedAttributeIds),
             });
           }}
         >
-          Delete Selected
+          {t("attributeLibrary.deleteSelected", "Delete Selected")}
         </Button>
       </Space>
 
@@ -252,7 +270,7 @@ export function AttributeLibraryPage({ user }) {
       />
 
       <Modal
-        title="Create Attribute"
+        title={t("attributeLibrary.createAttribute", "Create Attribute")}
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         footer={null}
@@ -263,34 +281,34 @@ export function AttributeLibraryPage({ user }) {
           onFinish={(values) => createAttributeMutation.mutate(values)}
         >
           <Form.Item
-            label="Name"
+            label={t("attributeLibrary.name", "Name")}
             name="name"
-            rules={[{ required: true, message: "Attribute name is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.nameRequired", "Attribute name is required") }]}
           >
-            <Input placeholder="Example: English Level" />
+            <Input placeholder={t("attributeLibrary.namePlaceholder", "Example: English Level")} />
           </Form.Item>
 
           <Form.Item
-            label="Category"
+            label={t("attributeLibrary.category", "Category")}
             name="category"
-            rules={[{ required: true, message: "Category is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.categoryRequired", "Category is required") }]}
           >
-            <Select placeholder="Select category" options={categoryOptions} />
+            <Select placeholder={t("attributeLibrary.categoryPlaceholder", "Select category")} options={categoryOptions} />
           </Form.Item>
 
           <Form.Item
-            label="Type"
+            label={t("attributeLibrary.type", "Type")}
             name="type"
-            rules={[{ required: true, message: "Type is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.typeRequired", "Type is required") }]}
           >
-            <Select placeholder="Select type" options={typeOptions} />
+            <Select placeholder={t("attributeLibrary.typePlaceholder", "Select type")} options={typeOptions} />
           </Form.Item>
 
           {selectedType === "SELECT" && (
             <Form.List name="options">
               {(fields, { add, remove }) => (
                 <div>
-                  <Text strong>Dropdown Options</Text>
+                  <Text strong>{t("attributeLibrary.dropdownOptions", "Dropdown Options")}</Text>
 
                   {fields.map((field) => (
                     <Space
@@ -304,31 +322,31 @@ export function AttributeLibraryPage({ user }) {
                         rules={[
                           {
                             required: true,
-                            message: "Option value is required",
+                            message: t("attributeLibrary.optionRequired", "Option value is required"),
                           },
                         ]}
                       >
-                        <Input placeholder="Example: Advanced" />
+                        <Input placeholder={t("attributeLibrary.optionPlaceholderAdvanced", "Example: Advanced")} />
                       </Form.Item>
 
                       <Button danger onClick={() => remove(field.name)}>
-                        Remove
+                        {t("attributeLibrary.removeOption", "Remove")}
                       </Button>
                     </Space>
                   ))}
 
                   <Button style={{ marginTop: 8 }} onClick={() => add()}>
-                    Add Option
+                    {t("attributeLibrary.addOption", "Add Option")}
                   </Button>
                 </div>
               )}
             </Form.List>
           )}
 
-          <Form.Item label="Description" name="description">
+          <Form.Item label={t("attributeLibrary.description", "Description")} name="description">
             <Input.TextArea
               rows={3}
-              placeholder="Short explanation for recruiters and candidates"
+              placeholder={t("attributeLibrary.descriptionPlaceholder", "Short explanation for recruiters and candidates")}
             />
           </Form.Item>
 
@@ -337,13 +355,13 @@ export function AttributeLibraryPage({ user }) {
             htmlType="submit"
             loading={createAttributeMutation.isPending}
           >
-            Save Attribute
+            {t("attributeLibrary.saveAttribute", "Save Attribute")}
           </Button>
         </Form>{" "}
       </Modal>
 
       <Modal
-        title="Edit Attribute"
+        title={t("attributeLibrary.editAttribute", "Edit Attribute")}
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         footer={null}
@@ -361,25 +379,25 @@ export function AttributeLibraryPage({ user }) {
           }}
         >
           <Form.Item
-            label="Name"
+            label={t("attributeLibrary.name", "Name")}
             name="name"
-            rules={[{ required: true, message: "Attribute name is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.nameRequired", "Attribute name is required") }]}
           >
             <Input />
           </Form.Item>
 
           <Form.Item
-            label="Category"
+            label={t("attributeLibrary.category", "Category")}
             name="category"
-            rules={[{ required: true, message: "Category is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.categoryRequired", "Category is required") }]}
           >
             <Select options={categoryOptions} />
           </Form.Item>
 
           <Form.Item
-            label="Type"
+            label={t("attributeLibrary.type", "Type")}
             name="type"
-            rules={[{ required: true, message: "Type is required" }]}
+            rules={[{ required: true, message: t("attributeLibrary.typeRequired", "Type is required") }]}
           >
             <Select options={typeOptions} />
           </Form.Item>
@@ -388,7 +406,7 @@ export function AttributeLibraryPage({ user }) {
             <Form.List name="options">
               {(fields, { add, remove }) => (
                 <div>
-                  <Text strong>Dropdown Options</Text>
+                  <Text strong>{t("attributeLibrary.dropdownOptions", "Dropdown Options")}</Text>
 
                   {fields.map((field) => (
                     <Space
@@ -402,28 +420,28 @@ export function AttributeLibraryPage({ user }) {
                         rules={[
                           {
                             required: true,
-                            message: "Option value is required",
+                            message: t("attributeLibrary.optionRequired", "Option value is required"),
                           },
                         ]}
                       >
-                        <Input placeholder="Example: Lead" />
+                        <Input placeholder={t("attributeLibrary.optionPlaceholderLead", "Example: Lead")} />
                       </Form.Item>
 
                       <Button danger onClick={() => remove(field.name)}>
-                        Remove
+                        {t("attributeLibrary.removeOption", "Remove")}
                       </Button>
                     </Space>
                   ))}
 
                   <Button style={{ marginTop: 8 }} onClick={() => add()}>
-                    Add Option
+                    {t("attributeLibrary.addOption", "Add Option")}
                   </Button>
                 </div>
               )}
             </Form.List>
           )}
 
-          <Form.Item label="Description" name="description">
+          <Form.Item label={t("attributeLibrary.description", "Description")} name="description">
             <Input.TextArea rows={3} />
           </Form.Item>
 
@@ -436,7 +454,7 @@ export function AttributeLibraryPage({ user }) {
             htmlType="submit"
             loading={updateAttributeMutation.isPending}
           >
-            Save Changes
+            {t("attributeLibrary.saveChanges", "Save Changes")}
           </Button>
         </Form>
       </Modal>

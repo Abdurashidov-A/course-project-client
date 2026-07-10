@@ -23,6 +23,7 @@ import {
   updateProject,
 } from "../api/projectApi";
 import { isCandidate } from "../utils/roles";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -64,6 +65,7 @@ function buildProjectPayload(values, version) {
 }
 
 export function MyProjectsPage({ user }) {
+  const { t } = useI18n();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedProjectIds, setSelectedProjectIds] = useState([]);
@@ -72,7 +74,7 @@ export function MyProjectsPage({ user }) {
   const queryClient = useQueryClient();
 
   if (!isCandidate(user)) {
-    return <Alert type="warning" message="You do not have access to this page" />;
+    return <Alert type="warning" message={t("projects.noAccess", "You do not have access to this page")} />;
   }
 
   const {
@@ -100,20 +102,20 @@ export function MyProjectsPage({ user }) {
   const createProjectMutation = useMutation({
     mutationFn: createProject,
     onSuccess: () => {
-      message.success("Project created successfully");
+      message.success(t("projects.createSuccess", "Project created successfully"));
       queryClient.invalidateQueries({ queryKey: ["my-projects"] });
       form.resetFields();
       setIsCreateModalOpen(false);
     },
     onError: () => {
-      message.error("Failed to create project");
+      message.error(t("projects.createError", "Failed to create project"));
     },
   });
 
   const updateProjectMutation = useMutation({
     mutationFn: ({ id, values }) => updateProject(id, values),
     onSuccess: () => {
-      message.success("Project updated successfully");
+      message.success(t("projects.updateSuccess", "Project updated successfully"));
       queryClient.invalidateQueries({ queryKey: ["my-projects"] });
       editForm.resetFields();
       setSelectedProjectIds([]);
@@ -122,46 +124,49 @@ export function MyProjectsPage({ user }) {
     onError: (error) => {
       if (error.response?.status === 409) {
         message.warning(
-          "This project was changed elsewhere. Please reload and try again.",
+          t(
+            "projects.conflict",
+            "This project was changed elsewhere. Please reload and try again.",
+          ),
         );
         return;
       }
 
-      message.error("Failed to update project");
+      message.error(t("projects.updateError", "Failed to update project"));
     },
   });
 
   const deleteProjectsMutation = useMutation({
     mutationFn: deleteProjects,
     onSuccess: () => {
-      message.success("Projects deleted successfully");
+      message.success(t("projects.deleteSuccess", "Projects deleted successfully"));
       queryClient.invalidateQueries({ queryKey: ["my-projects"] });
       setSelectedProjectIds([]);
     },
     onError: () => {
-      message.error("Failed to delete projects");
+      message.error(t("projects.deleteError", "Failed to delete projects"));
     },
   });
 
   const columns = [
     {
-      title: "Name",
+      title: t("projects.name", "Name"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Period",
+      title: t("projects.period", "Period"),
       key: "period",
       render: (_, record) =>
         `${formatDate(record.periodStart)} - ${formatDate(record.periodEnd)}`,
     },
     {
-      title: "Technology Tags",
+      title: t("projects.technologyTags", "Technology Tags"),
       dataIndex: "technologyTags",
       key: "technologyTags",
       render: (technologyTags) => {
         if (!technologyTags || technologyTags.length === 0) {
-          return <Text type="secondary">No tags</Text>;
+          return <Text type="secondary">{t("common.noTags", "No tags")}</Text>;
         }
 
         return (
@@ -174,13 +179,13 @@ export function MyProjectsPage({ user }) {
       },
     },
     {
-      title: "Updated At",
+      title: t("projects.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("projects.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
@@ -188,7 +193,7 @@ export function MyProjectsPage({ user }) {
   ];
 
   if (isError) {
-    return <Alert type="error" message="Failed to load projects" />;
+    return <Alert type="error" message={t("projects.loadError", "Failed to load projects")} />;
   }
 
   return (
@@ -201,16 +206,18 @@ export function MyProjectsPage({ user }) {
         }}
       >
         <Title level={2} style={{ margin: 0 }}>
-          My Projects
+          {t("projects.title", "My Projects")}
         </Title>
 
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-          Add Project
+          {t("projects.addProject", "Add Project")}
         </Button>
       </Space>
 
       <Space style={{ marginBottom: 16 }} wrap>
-        <Text type="secondary">Selected: {selectedProjectIds.length}</Text>
+        <Text type="secondary">
+          {t("common.selected", "Selected")}: {selectedProjectIds.length}
+        </Text>
 
         <Button
           disabled={selectedProjectIds.length !== 1}
@@ -228,7 +235,7 @@ export function MyProjectsPage({ user }) {
             setIsEditModalOpen(true);
           }}
         >
-          Edit Selected
+          {t("projects.editSelected", "Edit Selected")}
         </Button>
 
         <Button
@@ -237,15 +244,15 @@ export function MyProjectsPage({ user }) {
           loading={deleteProjectsMutation.isPending}
           onClick={() => {
             Modal.confirm({
-              title: "Delete selected projects?",
-              content: "This action will delete selected projects.",
-              okText: "Delete",
+              title: t("projects.deleteConfirmTitle", "Delete selected projects?"),
+              content: t("projects.deleteConfirmBody", "This action will delete selected projects."),
+              okText: t("common.delete", "Delete"),
               okButtonProps: { danger: true },
               onOk: () => deleteProjectsMutation.mutate(selectedProjectIds),
             });
           }}
         >
-          Delete Selected
+          {t("projects.deleteSelected", "Delete Selected")}
         </Button>
       </Space>
 
@@ -260,12 +267,12 @@ export function MyProjectsPage({ user }) {
           onChange: setSelectedProjectIds,
         }}
         locale={{
-          emptyText: <Empty description="No projects created yet" />,
+          emptyText: <Empty description={t("projects.noProjects", "No projects created yet")} />,
         }}
       />
 
       <Modal
-        title="Add Project"
+        title={t("projects.addProjectModal", "Add Project")}
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         footer={null}
@@ -278,29 +285,29 @@ export function MyProjectsPage({ user }) {
           }
         >
           <Form.Item
-            label="Name"
+            label={t("projects.name", "Name")}
             name="name"
-            rules={[{ required: true, message: "Project name is required" }]}
+            rules={[{ required: true, message: t("projects.nameRequired", "Project name is required") }]}
           >
-            <Input placeholder="Example: E-commerce Platform" />
+            <Input placeholder={t("projects.namePlaceholder", "Example: E-commerce Platform")} />
           </Form.Item>
 
-          <Form.Item label="Period" name="period">
+          <Form.Item label={t("projects.period", "Period")} name="period">
             <RangePicker style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item label="Description" name="description">
+          <Form.Item label={t("projects.description", "Description")} name="description">
             <TextArea
               rows={5}
-              placeholder="Write project description in Markdown text"
+              placeholder={t("projects.descriptionPlaceholder", "Write project description in Markdown text")}
             />
           </Form.Item>
 
-          <Form.Item label="Technology Tags" name="technologyTags">
+          <Form.Item label={t("projects.technologyTags", "Technology Tags")} name="technologyTags">
             <Select
               mode="tags"
               options={technologyTagOptions}
-              placeholder="Add technology tags"
+              placeholder={t("projects.tagsPlaceholder", "Add technology tags")}
             />
           </Form.Item>
 
@@ -309,13 +316,13 @@ export function MyProjectsPage({ user }) {
             htmlType="submit"
             loading={createProjectMutation.isPending}
           >
-            Save Project
+            {t("projects.saveProject", "Save Project")}
           </Button>
         </Form>
       </Modal>
 
       <Modal
-        title="Edit Project"
+        title={t("projects.editProjectModal", "Edit Project")}
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         footer={null}
@@ -333,29 +340,29 @@ export function MyProjectsPage({ user }) {
           }}
         >
           <Form.Item
-            label="Name"
+            label={t("projects.name", "Name")}
             name="name"
-            rules={[{ required: true, message: "Project name is required" }]}
+            rules={[{ required: true, message: t("projects.nameRequired", "Project name is required") }]}
           >
-            <Input placeholder="Example: E-commerce Platform" />
+            <Input placeholder={t("projects.namePlaceholder", "Example: E-commerce Platform")} />
           </Form.Item>
 
-          <Form.Item label="Period" name="period">
+          <Form.Item label={t("projects.period", "Period")} name="period">
             <RangePicker style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item label="Description" name="description">
+          <Form.Item label={t("projects.description", "Description")} name="description">
             <TextArea
               rows={5}
-              placeholder="Write project description in Markdown text"
+              placeholder={t("projects.descriptionPlaceholder", "Write project description in Markdown text")}
             />
           </Form.Item>
 
-          <Form.Item label="Technology Tags" name="technologyTags">
+          <Form.Item label={t("projects.technologyTags", "Technology Tags")} name="technologyTags">
             <Select
               mode="tags"
               options={technologyTagOptions}
-              placeholder="Add technology tags"
+              placeholder={t("projects.tagsPlaceholder", "Add technology tags")}
             />
           </Form.Item>
 
@@ -368,7 +375,7 @@ export function MyProjectsPage({ user }) {
             htmlType="submit"
             loading={updateProjectMutation.isPending}
           >
-            Save Changes
+            {t("projects.saveChanges", "Save Changes")}
           </Button>
         </Form>
       </Modal>

@@ -1,33 +1,35 @@
 import { Button, Card, Space, Typography, message } from "antd";
 import { useAuth } from "../context/AuthContext";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
-const devUsers = [
-  {
-    label: "Login as Candidate",
-    email: "candidate@test.com",
-  },
-  {
-    label: "Login as Recruiter",
-    email: "recruiter@test.com",
-  },
-  {
-    label: "Login as Admin",
-    email: "admin@test.com",
-  },
-];
-
 export default function LoginPage() {
   const { login } = useAuth();
+  const { t } = useI18n();
+
+  const devUsers = [
+    {
+      label: t("login.candidate", "Login as Candidate"),
+      email: "candidate@test.com",
+    },
+    {
+      label: t("login.recruiter", "Login as Recruiter"),
+      email: "recruiter@test.com",
+    },
+    {
+      label: t("login.admin", "Login as Admin"),
+      email: "admin@test.com",
+    },
+  ];
 
   async function handleLogin(email) {
     try {
       await login(email);
-      message.success("Logged in successfully");
+      message.success(t("login.success", "Logged in successfully"));
     } catch (error) {
       console.error(error);
-      message.error("Login failed");
+      message.error(t("login.error", "Login failed"));
     }
   }
 
@@ -36,8 +38,10 @@ export default function LoginPage() {
       <Card style={{ width: 420 }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div>
-            <Title level={3}>CV Management System</Title>
-            <Text type="secondary">Development login for testing roles</Text>
+            <Title level={3}>{t("login.title", "CV Management System")}</Title>
+            <Text type="secondary">
+              {t("login.subtitle", "Development login for testing roles")}
+            </Text>
           </div>
 
           <Space direction="vertical" style={{ width: "100%" }}>

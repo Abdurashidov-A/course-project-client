@@ -1,6 +1,7 @@
 import { Alert, Button, Empty, Space, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getPositionCvs } from "../api/cvApi";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
@@ -13,6 +14,7 @@ function formatDate(value) {
 }
 
 export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
+  const { t } = useI18n();
   const {
     data,
     isLoading,
@@ -25,43 +27,45 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
 
   const columns = [
     {
-      title: "Candidate Name",
+      title: t("positionCvs.candidateName", "Candidate Name"),
       dataIndex: ["candidate", "name"],
       key: "candidateName",
-      render: (name) => name || "—",
+      render: (name) => name || t("common.none", "—"),
     },
     {
-      title: "Candidate Email",
+      title: t("positionCvs.candidateEmail", "Candidate Email"),
       dataIndex: ["candidate", "email"],
       key: "candidateEmail",
-      render: (email) => email || "—",
+      render: (email) => email || t("common.none", "—"),
     },
     {
-      title: "Status",
+      title: t("positionCvs.status", "Status"),
       dataIndex: "status",
       key: "status",
-      render: (status) => <Tag>{status}</Tag>,
+      render: (status) => <Tag>{t(`status.${status}`, status)}</Tag>,
     },
     {
-      title: "Updated At",
+      title: t("positionCvs.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("positionCvs.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
     },
     {
-      title: "Likes",
+      title: t("positionCvs.likes", "Likes"),
       key: "likesCount",
       width: 160,
       render: (_, record) => (
         <Space wrap size={4}>
           <span>{record.likesCount ?? 0}</span>
-          {record.likedByCurrentUser ? <Tag color="blue">Liked by you</Tag> : null}
+          {record.likedByCurrentUser ? (
+            <Tag color="blue">{t("positionCvs.likedByYou", "Liked by you")}</Tag>
+          ) : null}
         </Space>
       ),
     },
@@ -70,8 +74,8 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
   if (!positionId) {
     return (
       <Space direction="vertical" size="middle">
-        <Button onClick={onBack}>Back to Positions</Button>
-        <Empty description="Select a position to view published CVs" />
+        <Button onClick={onBack}>{t("positionCvs.back", "Back to Positions")}</Button>
+        <Empty description={t("positionCvs.selectPosition", "Select a position to view published CVs")} />
       </Space>
     );
   }
@@ -79,8 +83,8 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
   if (isError) {
     return (
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-        <Button onClick={onBack}>Back to Positions</Button>
-        <Alert type="error" message="Failed to load published CVs" />
+        <Button onClick={onBack}>{t("positionCvs.back", "Back to Positions")}</Button>
+        <Alert type="error" message={t("positionCvs.loadError", "Failed to load published CVs")} />
       </Space>
     );
   }
@@ -88,15 +92,15 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
       <Button onClick={onBack} style={{ width: "fit-content" }}>
-        Back to Positions
+        {t("positionCvs.back", "Back to Positions")}
       </Button>
 
       <div>
         <Title level={2} style={{ marginBottom: 8 }}>
-          {data?.position?.title || "Published CVs"}
+          {data?.position?.title || t("positionCvs.titleFallback", "Published CVs")}
         </Title>
         <Text type="secondary">
-          {data?.position?.shortDescription || "No short description"}
+          {data?.position?.shortDescription || t("common.noShortDescription", "No short description")}
         </Text>
       </div>
 
@@ -119,7 +123,7 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
           style: { cursor: "pointer" },
         })}
         locale={{
-          emptyText: <Empty description="No published CVs found" />,
+          emptyText: <Empty description={t("positionCvs.noPublishedCvs", "No published CVs found")} />,
         }}
       />
     </Space>

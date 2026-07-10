@@ -31,10 +31,12 @@ import {
   canViewPublishedCvs,
 } from "../utils/roles";
 import { PositionDiscussion } from "../components/PositionDiscussion";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
 export function PositionsPage({ user, onViewPublishedCvs }) {
+  const { t } = useI18n();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
@@ -67,22 +69,27 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const duplicatePositionMutation = useMutation({
     mutationFn: duplicatePosition,
     onSuccess: () => {
-      message.success("Position duplicated successfully");
+      message.success(t("positions.duplicateSuccess", "Position duplicated successfully"));
       queryClient.invalidateQueries({ queryKey: ["positions"] });
       setSelectedPositionIds([]);
     },
     onError: (error) => {
       if (error.response?.status === 403) {
-        message.warning("Only recruiters/admins can duplicate positions.");
+        message.warning(
+          t(
+            "positions.duplicateForbidden",
+            "Only recruiters/admins can duplicate positions.",
+          ),
+        );
         return;
       }
 
       if (error.response?.status === 404) {
-        message.error("Source position was not found.");
+        message.error(t("positions.duplicateNotFound", "Source position was not found."));
         return;
       }
 
-      message.error("Failed to duplicate position");
+      message.error(t("positions.duplicateError", "Failed to duplicate position"));
     },
   });
 
@@ -99,15 +106,15 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const createCvMutation = useMutation({
     mutationFn: createCv,
     onSuccess: () => {
-      message.success("CV created successfully");
+      message.success(t("positions.cvCreated", "CV created successfully"));
     },
     onError: (error) => {
       if (error.response?.status === 409) {
-        message.warning("CV already exists for this position");
+        message.warning(t("positions.cvExists", "CV already exists for this position"));
         return;
       }
 
-      message.error("Failed to create CV");
+      message.error(t("positions.cvCreateError", "Failed to create CV"));
     },
   });
 
@@ -131,39 +138,41 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
   const columns = [
     {
-      title: "Title",
+      title: t("positions.titleColumn", "Title"),
       dataIndex: "title",
       key: "title",
     },
     {
-      title: "Description",
+      title: t("positions.description", "Description"),
       dataIndex: "shortDescription",
       key: "shortDescription",
       render: (description) =>
-        description || <Text type="secondary">No description</Text>,
+        description || <Text type="secondary">{t("common.noDescription", "No description")}</Text>,
     },
     {
-      title: "Access",
+      title: t("positions.access", "Access"),
       dataIndex: "isPublic",
       key: "isPublic",
       render: (isPublic) => (
         <Tag color={isPublic ? "green" : "orange"}>
-          {isPublic ? "Public" : "Restricted"}
+          {isPublic
+            ? t("access.public", "Public")
+            : t("access.restricted", "Restricted")}
         </Tag>
       ),
     },
     {
-      title: "Max Projects",
+      title: t("positions.maxProjects", "Max Projects"),
       dataIndex: "maxProjects",
       key: "maxProjects",
     },
     {
-      title: "Project Tags",
+      title: t("positions.projectTags", "Project Tags"),
       dataIndex: "projectTags",
       key: "projectTags",
       render: (projectTags) => {
         if (!projectTags || projectTags.length === 0) {
-          return <Text type="secondary">No tags</Text>;
+          return <Text type="secondary">{t("common.noTags", "No tags")}</Text>;
         }
 
         return (
@@ -176,12 +185,12 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       },
     },
     {
-      title: "Attributes",
+      title: t("positions.attributes", "Attributes"),
       dataIndex: "attributes",
       key: "attributes",
       render: (attributes) => {
         if (!attributes || attributes.length === 0) {
-          return <Text type="secondary">No attributes</Text>;
+          return <Text type="secondary">{t("cvPreview.noAttributes", "No attributes found")}</Text>;
         }
 
         return (
@@ -199,7 +208,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   ];
 
   if (isError) {
-    return <Text type="danger">Failed to load positions</Text>;
+    return <Text type="danger">{t("positions.loadError", "Failed to load positions")}</Text>;
   }
 
   const showCreateCv = canCreateCv(user);
@@ -216,15 +225,17 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         }}
       >
         <Title level={2} style={{ margin: 0 }}>
-          Positions
+          {t("positions.title", "Positions")}
         </Title>
 
         <Space style={{ marginBottom: 16 }} wrap>
-          <Text type="secondary">Selected: {selectedPositionIds.length}</Text>
+          <Text type="secondary">
+            {t("common.selected", "Selected")}: {selectedPositionIds.length}
+          </Text>
 
           {selectedPositionIds.length > 1 ? (
             <Text type="warning">
-              Select only one position for toolbar actions
+              {t("positions.selectOneAction", "Select only one position for toolbar actions")}
             </Text>
           ) : null}
 
@@ -238,7 +249,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 createCvMutation.mutate(selectedPosition.id);
               }}
             >
-              Create CV
+              {t("positions.createCv", "Create CV")}
             </Button>
           ) : null}
 
@@ -251,7 +262,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 onViewPublishedCvs?.(selectedPosition.id);
               }}
             >
-              View Published CVs
+              {t("positions.viewPublishedCvs", "View Published CVs")}
             </Button>
           ) : null}
 
@@ -263,7 +274,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               setIsDiscussionOpen(true);
             }}
           >
-            Discussion
+            {t("positions.discussion", "Discussion")}
           </Button>
 
           {showManagePositions ? (
@@ -290,7 +301,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 setIsEditModalOpen(true);
               }}
             >
-              Edit Selected
+              {t("positions.editSelected", "Edit Selected")}
             </Button>
           ) : null}
 
@@ -304,7 +315,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 duplicatePositionMutation.mutate(selectedPosition.id);
               }}
             >
-              Duplicate Selected
+              {t("positions.duplicateSelected", "Duplicate Selected")}
             </Button>
           ) : null}
 
@@ -315,22 +326,25 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               loading={deletePositionsMutation.isPending}
               onClick={() => {
                 Modal.confirm({
-                  title: "Delete selected positions?",
-                  content: "This action will delete selected position templates.",
-                  okText: "Delete",
+                  title: t("positions.deleteConfirmTitle", "Delete selected positions?"),
+                  content: t(
+                    "positions.deleteConfirmBody",
+                    "This action will delete selected position templates.",
+                  ),
+                  okText: t("common.delete", "Delete"),
                   okButtonProps: { danger: true },
                   onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
                 });
               }}
             >
-              Delete Selected
+              {t("positions.deleteSelected", "Delete Selected")}
             </Button>
           ) : null}
         </Space>
 
         {showManagePositions ? (
           <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-            Create Position
+            {t("positions.createPosition", "Create Position")}
           </Button>
         ) : null}
       </Space>
@@ -355,7 +369,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
       {showManagePositions ? (
         <Modal
-          title="Create Position"
+          title={t("positions.createPosition", "Create Position")}
           open={isCreateModalOpen}
           onCancel={() => setIsCreateModalOpen(false)}
           footer={null}
@@ -379,43 +393,43 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             }}
           >
             <Form.Item
-              label="Title"
+              label={t("positions.titleColumn", "Title")}
               name="title"
-              rules={[{ required: true, message: "Position title is required" }]}
+              rules={[{ required: true, message: t("positions.positionTitleRequired", "Position title is required") }]}
             >
-              <Input placeholder="Example: Frontend Developer" />
+              <Input placeholder={t("positions.titlePlaceholder", "Example: Frontend Developer")} />
             </Form.Item>
-            <Form.Item label="Short Description" name="shortDescription">
+            <Form.Item label={t("positions.shortDescription", "Short Description")} name="shortDescription">
               <Input.TextArea
                 rows={3}
-                placeholder="Short description for candidates"
+                placeholder={t("positions.shortDescriptionPlaceholder", "Short description for candidates")}
               />
             </Form.Item>
             <Form.Item
-              label="Public Position"
+              label={t("positions.publicPosition", "Public Position")}
               name="isPublic"
               valuePropName="checked"
               initialValue={true}
             >
               <Switch />
             </Form.Item>
-            <Form.Item label="Max Projects" name="maxProjects" initialValue={3}>
+            <Form.Item label={t("positions.maxProjects", "Max Projects")} name="maxProjects" initialValue={3}>
               <InputNumber min={0} max={10} style={{ width: "100%" }} />
             </Form.Item>
-            <Form.Item label="Project Tags" name="projectTags">
-              <Select mode="tags" placeholder="Add project tags" />
+            <Form.Item label={t("positions.projectTags", "Project Tags")} name="projectTags">
+              <Select mode="tags" placeholder={t("positions.projectTagsPlaceholder", "Add project tags")} />
             </Form.Item>
             <Form.Item
-              label="Position Attributes"
+              label={t("positions.positionAttributes", "Position Attributes")}
               name="attributeIds"
               rules={[
-                { required: true, message: "Select at least one attribute" },
+                { required: true, message: t("positions.selectAtLeastOneAttribute", "Select at least one attribute") },
               ]}
             >
               <Select
                 mode="multiple"
                 loading={isAttributesLoading}
-                placeholder="Select attributes for this position"
+                placeholder={t("positions.attributesPlaceholder", "Select attributes for this position")}
                 options={attributes.map((attribute) => ({
                   label: `${attribute.name} (${attribute.type})`,
                   value: attribute.id,
@@ -423,7 +437,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               />
             </Form.Item>
             {selectedCreateAttributeIds.length > 0 && (
-              <Form.Item label="Required Attributes" name="requiredAttributeIds">
+              <Form.Item label={t("positions.requiredAttributes", "Required Attributes")} name="requiredAttributeIds">
                 <Checkbox.Group
                   options={attributes
                     .filter((attribute) =>
@@ -441,7 +455,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               htmlType="submit"
               loading={createPositionMutation.isPending}
             >
-              Save Position
+              {t("positions.savePosition", "Save Position")}
             </Button>
           </Form>{" "}
         </Modal>
@@ -449,7 +463,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
       {showManagePositions ? (
         <Modal
-          title="Edit Position"
+          title={t("positions.editPosition", "Edit Position")}
           open={isEditModalOpen}
           onCancel={() => setIsEditModalOpen(false)}
           footer={null}
@@ -479,42 +493,42 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             }}
           >
           <Form.Item
-            label="Title"
+            label={t("positions.titleColumn", "Title")}
             name="title"
-            rules={[{ required: true, message: "Position title is required" }]}
+            rules={[{ required: true, message: t("positions.positionTitleRequired", "Position title is required") }]}
           >
-            <Input placeholder="Example: Frontend Developer" />
+            <Input placeholder={t("positions.titlePlaceholder", "Example: Frontend Developer")} />
           </Form.Item>
-          <Form.Item label="Short Description" name="shortDescription">
+          <Form.Item label={t("positions.shortDescription", "Short Description")} name="shortDescription">
             <Input.TextArea
               rows={3}
-              placeholder="Short description for candidates"
+              placeholder={t("positions.shortDescriptionPlaceholder", "Short description for candidates")}
             />
           </Form.Item>
           <Form.Item
-            label="Public Position"
+            label={t("positions.publicPosition", "Public Position")}
             name="isPublic"
             valuePropName="checked"
           >
             <Switch />
           </Form.Item>
-          <Form.Item label="Max Projects" name="maxProjects">
+          <Form.Item label={t("positions.maxProjects", "Max Projects")} name="maxProjects">
             <InputNumber min={0} max={10} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item label="Project Tags" name="projectTags">
-            <Select mode="tags" placeholder="Add project tags" />
+          <Form.Item label={t("positions.projectTags", "Project Tags")} name="projectTags">
+            <Select mode="tags" placeholder={t("positions.projectTagsPlaceholder", "Add project tags")} />
           </Form.Item>
           <Form.Item
-            label="Position Attributes"
+            label={t("positions.positionAttributes", "Position Attributes")}
             name="attributeIds"
             rules={[
-              { required: true, message: "Select at least one attribute" },
+              { required: true, message: t("positions.selectAtLeastOneAttribute", "Select at least one attribute") },
             ]}
           >
             <Select
               mode="multiple"
               loading={isAttributesLoading}
-              placeholder="Select attributes for this position"
+              placeholder={t("positions.attributesPlaceholder", "Select attributes for this position")}
               options={attributes.map((attribute) => ({
                 label: `${attribute.name} (${attribute.type})`,
                 value: attribute.id,
@@ -522,7 +536,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             />
           </Form.Item>
           {selectedEditAttributeIds.length > 0 && (
-            <Form.Item label="Required Attributes" name="requiredAttributeIds">
+            <Form.Item label={t("positions.requiredAttributes", "Required Attributes")} name="requiredAttributeIds">
               <Checkbox.Group
                 options={attributes
                   .filter((attribute) =>
@@ -543,8 +557,8 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             htmlType="submit"
             loading={updatePositionMutation.isPending}
           >
-            Save Changes
-          </Button>
+              {t("projects.saveChanges", "Save Changes")}
+            </Button>
           </Form>
         </Modal>
       ) : null}

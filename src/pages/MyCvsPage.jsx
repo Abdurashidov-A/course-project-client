@@ -2,6 +2,7 @@ import { Alert, Empty, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getMyCvs } from "../api/cvApi";
 import { isCandidate } from "../utils/roles";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title } = Typography;
 
@@ -14,8 +15,10 @@ function formatDate(value) {
 }
 
 export function MyCvsPage({ user, onOpenCv }) {
+  const { t } = useI18n();
+
   if (!isCandidate(user)) {
-    return <Alert type="warning" message="You do not have access to this page" />;
+    return <Alert type="warning" message={t("myCvs.noAccess", "You do not have access to this page")} />;
   }
 
   const {
@@ -29,37 +32,37 @@ export function MyCvsPage({ user, onOpenCv }) {
 
   const columns = [
     {
-      title: "Position Title",
+      title: t("myCvs.positionTitle", "Position Title"),
       dataIndex: ["position", "title"],
       key: "positionTitle",
-      render: (title) => title || "—",
+      render: (title) => title || t("common.none", "—"),
     },
     {
-      title: "Status",
+      title: t("myCvs.status", "Status"),
       dataIndex: "status",
       key: "status",
-      render: (status) => <Tag>{status}</Tag>,
+      render: (status) => <Tag>{t(`status.${status}`, status)}</Tag>,
     },
     {
-      title: "Created At",
+      title: t("myCvs.createdAt", "Created At"),
       dataIndex: "createdAt",
       key: "createdAt",
       render: formatDate,
     },
     {
-      title: "Updated At",
+      title: t("myCvs.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("myCvs.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
     },
     {
-      title: "Likes",
+      title: t("myCvs.likes", "Likes"),
       dataIndex: "likesCount",
       key: "likesCount",
       width: 100,
@@ -68,12 +71,12 @@ export function MyCvsPage({ user, onOpenCv }) {
   ];
 
   if (isError) {
-    return <Alert type="error" message="Failed to load CVs" />;
+    return <Alert type="error" message={t("myCvs.loadError", "Failed to load CVs")} />;
   }
 
   return (
     <div>
-      <Title level={2}>My CVs</Title>
+      <Title level={2}>{t("myCvs.title", "My CVs")}</Title>
 
       <Table
         rowKey="id"
@@ -86,7 +89,7 @@ export function MyCvsPage({ user, onOpenCv }) {
           style: { cursor: "pointer" },
         })}
         locale={{
-          emptyText: <Empty description="No CVs created yet" />,
+          emptyText: <Empty description={t("myCvs.noCvs", "No CVs created yet")} />,
         }}
       />
     </div>

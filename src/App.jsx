@@ -1,4 +1,14 @@
-import { Button, ConfigProvider, Layout, Menu, Space, Switch, Typography, theme } from "antd";
+import {
+  Button,
+  ConfigProvider,
+  Layout,
+  Menu,
+  Segmented,
+  Space,
+  Switch,
+  Typography,
+  theme,
+} from "antd";
 import { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
@@ -18,22 +28,23 @@ import { CvPreviewPage } from "./pages/CvPreviewPage";
 import { PositionCvsPage } from "./pages/PositionCvsPage";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
+import { useI18n } from "./i18n/I18nProvider";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
-function getMenuItems(user) {
+function getMenuItems(user, t) {
   const items = [
     {
       key: "dashboard",
-      label: "Dashboard",
-      title: "Dashboard",
+      label: t("nav.dashboard", "Dashboard"),
+      title: t("nav.dashboard", "Dashboard"),
       description: "Main overview page with statistics and latest positions.",
     },
     {
       key: "positions",
-      label: "Positions",
-      title: "Positions",
+      label: t("nav.positions", "Positions"),
+      title: t("nav.positions", "Positions"),
       description: "Table view of available positions.",
     },
   ];
@@ -42,20 +53,20 @@ function getMenuItems(user) {
     items.push(
       {
         key: "my-profile",
-        label: "My Profile",
-        title: "My Profile",
+        label: t("nav.myProfile", "My Profile"),
+        title: t("nav.myProfile", "My Profile"),
         description: "Candidate personal profile with attributes and projects.",
       },
       {
         key: "my-cvs",
-        label: "My CVs",
-        title: "My CVs",
+        label: t("nav.myCvs", "My CVs"),
+        title: t("nav.myCvs", "My CVs"),
         description: "Table view of CVs created by the candidate.",
       },
       {
         key: "my-projects",
-        label: "My Projects",
-        title: "My Projects",
+        label: t("nav.myProjects", "My Projects"),
+        title: t("nav.myProjects", "My Projects"),
         description: "Table view of projects created by the candidate.",
       },
     );
@@ -65,8 +76,8 @@ function getMenuItems(user) {
     items.push(
       {
         key: "attribute-library",
-        label: "Attribute Library",
-        title: "Attribute Library",
+        label: t("nav.attributeLibrary", "Attribute Library"),
+        title: t("nav.attributeLibrary", "Attribute Library"),
         description: "Reusable attributes managed by recruiters.",
       },
     );
@@ -78,6 +89,7 @@ function getMenuItems(user) {
 export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const { themeMode, isDarkMode, setThemeMode } = useThemeMode();
+  const { language, setLanguage, t } = useI18n();
   const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
@@ -96,7 +108,7 @@ export default function App() {
       <div className={`app-shell app-theme-${themeMode}`}>
         {isAuthenticated ? (
           (() => {
-            const menuItems = getMenuItems(user);
+            const menuItems = getMenuItems(user, t);
             const menuSelectedKey =
               selectedPageKey === "cv-preview"
                 ? cvPreviewSource === "position-cvs"
@@ -111,23 +123,37 @@ export default function App() {
             return (
               <Layout style={{ minHeight: "100vh", background: "var(--app-bg)" }}>
                 <Header className="app-header">
-                  <div className="app-brand">CV Management System</div>
+                  <div className="app-brand">{t("app.title", "CV Management System")}</div>
 
                   <Space wrap>
                     <GlobalSearch />
                     <Space size="small">
-                      <Text className="app-header-text">Theme</Text>
+                      <Text className="app-header-text">{t("header.theme", "Theme")}</Text>
                       <Switch
                         checked={isDarkMode}
-                        checkedChildren="Dark"
-                        unCheckedChildren="Light"
+                        checkedChildren={t("theme.dark", "Dark")}
+                        unCheckedChildren={t("theme.light", "Light")}
                         onChange={(checked) =>
                           setThemeMode(checked ? "dark" : "light")
                         }
                       />
                     </Space>
+                    <Space size="small">
+                      <Text className="app-header-text">
+                        {t("header.language", "Language")}
+                      </Text>
+                      <Segmented
+                        size="small"
+                        value={language}
+                        onChange={setLanguage}
+                        options={[
+                          { label: "EN", value: "en" },
+                          { label: "UZ", value: "uz" },
+                        ]}
+                      />
+                    </Space>
                     <Text className="app-header-text">{user.name}</Text>
-                    <Button onClick={logout}>Logout</Button>
+                    <Button onClick={logout}>{t("header.logout", "Logout")}</Button>
                   </Space>
                 </Header>
 

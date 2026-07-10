@@ -25,57 +25,58 @@ import {
   saveProfileAttribute,
 } from "../api/profileAttributeApi";
 import { isCandidate } from "../utils/roles";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
-function getDisplayValue(record) {
+function getDisplayValue(record, t) {
   const type = record.attribute?.type;
 
   if (type === "STRING" || type === "SELECT") {
-    return record.stringValue || "—";
+    return record.stringValue || t("common.none", "—");
   }
 
   if (type === "TEXT") {
-    return record.textValue || "—";
+    return record.textValue || t("common.none", "—");
   }
 
   if (type === "NUMERIC") {
-    return record.numericValue ?? "—";
+    return record.numericValue ?? t("common.none", "—");
   }
 
   if (type === "BOOLEAN") {
     return record.booleanValue === null
-      ? "—"
+      ? t("common.none", "—")
       : record.booleanValue
-        ? "Yes"
-        : "No";
+        ? t("common.yes", "Yes")
+        : t("common.no", "No");
   }
 
   if (type === "DATE") {
     return record.dateValue
       ? new Date(record.dateValue).toLocaleDateString()
-      : "—";
+      : t("common.none", "—");
   }
 
   if (type === "PERIOD") {
     const start = record.periodStart
       ? new Date(record.periodStart).toLocaleDateString()
-      : "—";
+      : t("common.none", "—");
 
     const end = record.periodEnd
       ? new Date(record.periodEnd).toLocaleDateString()
-      : "—";
+      : t("common.none", "—");
 
     return `${start} - ${end}`;
   }
 
   if (type === "IMAGE") {
-    return record.imageUrl || "—";
+    return record.imageUrl || t("common.none", "—");
   }
 
-  return "—";
+  return t("common.none", "—");
 }
 
 function getFormValue(existingValue, attributeType) {
@@ -148,21 +149,26 @@ function buildSavePayload(attribute, value, existingValue) {
   return payload;
 }
 
-function renderValueInput(attribute) {
+function renderValueInput(attribute, t) {
   if (!attribute) {
-    return <Input disabled placeholder="Select attribute first" />;
+    return <Input disabled placeholder={t("profile.attributePlaceholder", "Select attribute")} />;
   }
 
   if (attribute.type === "TEXT") {
-    return <TextArea rows={4} placeholder="Enter text value" />;
+    return <TextArea rows={4} placeholder={t("profile.value", "Value")} />;
   }
 
   if (attribute.type === "NUMERIC") {
-    return <InputNumber style={{ width: "100%" }} placeholder="Enter number" />;
+    return <InputNumber style={{ width: "100%" }} placeholder={t("attributeType.NUMERIC", "Numeric")} />;
   }
 
   if (attribute.type === "BOOLEAN") {
-    return <Switch checkedChildren="Yes" unCheckedChildren="No" />;
+    return (
+      <Switch
+        checkedChildren={t("common.yes", "Yes")}
+        unCheckedChildren={t("common.no", "No")}
+      />
+    );
   }
 
   if (attribute.type === "DATE") {
@@ -174,13 +180,13 @@ function renderValueInput(attribute) {
   }
 
   if (attribute.type === "IMAGE") {
-    return <Input placeholder="Enter image URL" />;
+    return <Input placeholder="https://..." />;
   }
 
   if (attribute.type === "SELECT") {
     return (
       <Select
-        placeholder="Select value"
+        placeholder={t("profile.value", "Value")}
         options={(attribute.options || []).map((option) => ({
           label: option.value,
           value: option.value,
@@ -189,12 +195,14 @@ function renderValueInput(attribute) {
     );
   }
 
-  return <Input placeholder="Enter value" />;
+  return <Input placeholder={t("profile.value", "Value")} />;
 }
 
 export function CandidateProfilePage({ user }) {
+  const { t } = useI18n();
+
   if (!isCandidate(user)) {
-    return <Alert type="warning" message="You do not have access to this page" />;
+    return <Alert type="warning" message={t("profile.noAccess", "You do not have access to this page")} />;
   }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -230,7 +238,7 @@ export function CandidateProfilePage({ user }) {
     mutationFn: ({ attributeId, payload }) =>
       saveProfileAttribute(attributeId, payload),
     onSuccess: () => {
-      message.success("Profile attribute saved");
+      message.success(t("profile.saveSuccess", "Profile attribute saved"));
       queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
       setIsModalOpen(false);
       form.resetFields();
@@ -238,23 +246,23 @@ export function CandidateProfilePage({ user }) {
     },
     onError: (error) => {
       if (error.response?.status === 409) {
-        message.error("Version conflict. Please refresh and try again.");
+        message.error(t("profile.conflict", "Version conflict. Please refresh and try again."));
         return;
       }
 
-      message.error("Failed to save profile attribute");
+      message.error(t("profile.saveError", "Failed to save profile attribute"));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteProfileAttributes,
     onSuccess: () => {
-      message.success("Profile attribute value deleted");
+      message.success(t("profile.deleteSuccess", "Profile attribute value deleted"));
       queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
       setSelectedRowKeys([]);
     },
     onError: () => {
-      message.error("Failed to delete profile attribute value");
+      message.error(t("profile.deleteError", "Failed to delete profile attribute value"));
     },
   });
 
@@ -300,26 +308,29 @@ export function CandidateProfilePage({ user }) {
   const columns = [
     {
       title: "Attribute",
+      title: t("profile.attribute", "Attribute"),
       dataIndex: ["attribute", "name"],
       key: "attributeName",
     },
     {
-      title: "Category",
+      title: t("profile.category", "Category"),
       dataIndex: ["attribute", "category"],
       key: "category",
+      render: (category) => t(`attributeCategory.${category}`, category),
     },
     {
-      title: "Type",
+      title: t("profile.type", "Type"),
       dataIndex: ["attribute", "type"],
       key: "type",
+      render: (type) => t(`attributeType.${type}`, type),
     },
     {
-      title: "Value",
+      title: t("profile.value", "Value"),
       key: "value",
-      render: (_, record) => <Text strong>{getDisplayValue(record)}</Text>,
+      render: (_, record) => <Text strong>{getDisplayValue(record, t)}</Text>,
     },
     {
-      title: "Version",
+      title: t("profile.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
@@ -337,21 +348,26 @@ export function CandidateProfilePage({ user }) {
       >
         <div>
           <Title level={3} style={{ marginBottom: 4 }}>
-            My Profile Attributes
+            {t("profile.title", "My Profile Attributes")}
           </Title>
 
           <Text type="secondary">
-            These values are stored once in the candidate profile and will be
-            reused later for automatic CV generation.
+            {t(
+              "profile.subtitle",
+              "These values are stored once in the candidate profile and will be reused later for automatic CV generation.",
+            )}
           </Text>
         </div>
 
         <Space>
           <Popconfirm
-            title="Delete selected profile values?"
-            description="This will remove values only from candidate profile, not from Attribute Library."
-            okText="Delete"
-            cancelText="Cancel"
+            title={t("profile.deleteConfirmTitle", "Delete selected profile values?")}
+            description={t(
+              "profile.deleteConfirmBody",
+              "This will remove values only from candidate profile, not from Attribute Library.",
+            )}
+            okText={t("common.delete", "Delete")}
+            cancelText={t("common.cancel", "Cancel")}
             disabled={selectedRowKeys.length === 0}
             onConfirm={() => deleteMutation.mutate(selectedRowKeys)}
           >
@@ -360,12 +376,12 @@ export function CandidateProfilePage({ user }) {
               disabled={selectedRowKeys.length === 0}
               loading={deleteMutation.isPending}
             >
-              Delete Selected
+              {t("profile.deleteSelected", "Delete Selected")}
             </Button>
           </Popconfirm>
 
           <Button type="primary" onClick={openModal}>
-            Add / Update Attribute Value
+            {t("profile.addOrUpdate", "Add / Update Attribute Value")}
           </Button>
         </Space>
       </Space>
@@ -373,7 +389,7 @@ export function CandidateProfilePage({ user }) {
       {isError ? (
         <Alert
           type="error"
-          message="Failed to load profile attributes"
+          message={t("profile.loadError", "Failed to load profile attributes")}
           style={{ marginBottom: 16 }}
         />
       ) : null}
@@ -388,7 +404,7 @@ export function CandidateProfilePage({ user }) {
       />
 
       <Modal
-        title="Add / Update Attribute Value"
+        title={t("profile.addOrUpdate", "Add / Update Attribute Value")}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
@@ -397,13 +413,13 @@ export function CandidateProfilePage({ user }) {
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
-            label="Attribute"
+            label={t("profile.attribute", "Attribute")}
             name="attributeId"
-            rules={[{ required: true, message: "Please select attribute" }]}
+            rules={[{ required: true, message: t("profile.selectAttribute", "Please select attribute") }]}
           >
             <Select
               showSearch
-              placeholder="Select attribute"
+              placeholder={t("profile.attributePlaceholder", "Select attribute")}
               optionFilterProp="label"
               onChange={(value) => setSelectedAttributeId(value)}
               options={attributes.map((attribute) => ({
@@ -415,15 +431,15 @@ export function CandidateProfilePage({ user }) {
 
           <Form.Item
             key={selectedAttribute?.type || "empty"}
-            label="Value"
+            label={t("profile.value", "Value")}
             name="value"
             valuePropName={
               selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
             }
           >
-            {renderValueInput(selectedAttribute)}
-          </Form.Item>
-        </Form>
+              {renderValueInput(selectedAttribute, t)}
+            </Form.Item>
+          </Form>
       </Modal>
     </Card>
   );

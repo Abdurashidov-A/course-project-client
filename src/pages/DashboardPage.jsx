@@ -12,6 +12,7 @@ import {
   Typography,
 } from "antd";
 import { getDashboardStats } from "../api/dashboardApi";
+import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
@@ -24,26 +25,29 @@ function formatDate(value) {
 }
 
 function PopularPositionsSection({ data }) {
+  const { t } = useI18n();
   const popularPositionsColumns = [
     {
-      title: "Position",
+      title: t("dashboard.position", "Position"),
       dataIndex: "title",
       key: "title",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
-          <Text>{record.title || "—"}</Text>
-          <Text type="secondary">{record.shortDescription || "No description"}</Text>
+          <Text>{record.title || t("common.none", "—")}</Text>
+          <Text type="secondary">
+            {record.shortDescription || t("common.noDescription", "No description")}
+          </Text>
         </Space>
       ),
     },
     {
-      title: "Submitted CVs",
+      title: t("dashboard.submittedCvs", "Submitted CVs"),
       dataIndex: "submittedCvsCount",
       key: "submittedCvsCount",
       width: 160,
     },
     {
-      title: "Published CVs",
+      title: t("dashboard.publishedCvs", "Published CVs"),
       dataIndex: "publishedCvsCount",
       key: "publishedCvsCount",
       width: 160,
@@ -51,23 +55,28 @@ function PopularPositionsSection({ data }) {
   ];
 
   return (
-    <Card title="Most Popular Positions">
+    <Card title={t("dashboard.popularPositions", "Most Popular Positions")}>
       <Table
         rowKey="id"
         columns={popularPositionsColumns}
         dataSource={data?.popularPositions || []}
         pagination={false}
-        locale={{ emptyText: <Empty description="No popular positions yet" /> }}
+        locale={{
+          emptyText: (
+            <Empty description={t("dashboard.noPopularPositions", "No popular positions yet")} />
+          ),
+        }}
       />
     </Card>
   );
 }
 
 function TechnologyTagCloudSection({ data }) {
+  const { t } = useI18n();
   const technologyTags = data?.technologyTagCloud || [];
 
   return (
-    <Card title="Technology Tag Cloud">
+    <Card title={t("dashboard.technologyTagCloud", "Technology Tag Cloud")}>
       {technologyTags.length > 0 ? (
         <Space wrap size={[8, 12]}>
           {technologyTags.map((item) => (
@@ -77,36 +86,41 @@ function TechnologyTagCloudSection({ data }) {
           ))}
         </Space>
       ) : (
-        <Empty description="No technology tags yet" />
+        <Empty description={t("dashboard.noTechnologyTags", "No technology tags yet")} />
       )}
     </Card>
   );
 }
 
 function CandidateDashboard({ data }) {
+  const { t } = useI18n();
   const stats = data?.stats || {};
 
   const recentCvsColumns = [
     {
-      title: "Position",
+      title: t("dashboard.position", "Position"),
       dataIndex: ["position", "title"],
       key: "position",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Status",
+      title: t("myCvs.status", "Status"),
       dataIndex: "status",
       key: "status",
-      render: (status) => <Tag color={status === "PUBLISHED" ? "green" : "blue"}>{status}</Tag>,
+      render: (status) => (
+        <Tag color={status === "PUBLISHED" ? "green" : "blue"}>
+          {t(`status.${status}`, status)}
+        </Tag>
+      ),
     },
     {
-      title: "Updated At",
+      title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
@@ -115,13 +129,13 @@ function CandidateDashboard({ data }) {
 
   const recentProjectsColumns = [
     {
-      title: "Project",
+      title: t("dashboard.project", "Project"),
       dataIndex: "name",
       key: "name",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Technology Tags",
+      title: t("projects.technologyTags", "Technology Tags"),
       dataIndex: "technologyTags",
       key: "technologyTags",
       render: (technologyTags) =>
@@ -132,17 +146,17 @@ function CandidateDashboard({ data }) {
             ))}
           </Space>
         ) : (
-          <Text type="secondary">No tags</Text>
+          <Text type="secondary">{t("common.noTags", "No tags")}</Text>
         ),
     },
     {
-      title: "Updated At",
+      title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
@@ -153,28 +167,30 @@ function CandidateDashboard({ data }) {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <div>
         <Title level={2} style={{ marginBottom: 8 }}>
-          Dashboard
+          {t("dashboard.title", "Dashboard")}
         </Title>
-        <Text type="secondary">Your current CV and profile overview.</Text>
+        <Text type="secondary">
+          {t("dashboard.candidateSubtitle", "Your current CV and profile overview.")}
+        </Text>
       </div>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Total My CVs" value={stats.totalCvs || 0} /></Card>
+          <Card><Statistic title={t("dashboard.totalMyCvs", "Total My CVs")} value={stats.totalCvs || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Published CVs" value={stats.publishedCvs || 0} /></Card>
+          <Card><Statistic title={t("dashboard.publishedCvs", "Published CVs")} value={stats.publishedCvs || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Draft CVs" value={stats.draftCvs || 0} /></Card>
+          <Card><Statistic title={t("dashboard.draftCvs", "Draft CVs")} value={stats.draftCvs || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="My Projects" value={stats.projects || 0} /></Card>
+          <Card><Statistic title={t("dashboard.myProjects", "My Projects")} value={stats.projects || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <Card>
             <Statistic
-              title="Filled Profile Attributes"
+              title={t("dashboard.filledProfileAttributes", "Filled Profile Attributes")}
               value={stats.filledProfileAttributes || 0}
             />
           </Card>
@@ -182,7 +198,7 @@ function CandidateDashboard({ data }) {
         <Col xs={24} sm={12} lg={8}>
           <Card>
             <Statistic
-              title="Missing Profile Attributes"
+              title={t("dashboard.missingProfileAttributes", "Missing Profile Attributes")}
               value={stats.missingProfileAttributes || 0}
             />
           </Card>
@@ -191,24 +207,24 @@ function CandidateDashboard({ data }) {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={12}>
-          <Card title="Recent CVs">
+          <Card title={t("dashboard.recentCvs", "Recent CVs")}>
             <Table
               rowKey="id"
               columns={recentCvsColumns}
               dataSource={data?.recentCvs || []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No CVs yet" /> }}
+              locale={{ emptyText: <Empty description={t("dashboard.noCvs", "No CVs yet")} /> }}
             />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title="Recent Projects">
+          <Card title={t("dashboard.recentProjects", "Recent Projects")}>
             <Table
               rowKey="id"
               columns={recentProjectsColumns}
               dataSource={data?.recentProjects || []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No projects yet" /> }}
+              locale={{ emptyText: <Empty description={t("dashboard.noProjects", "No projects yet")} /> }}
             />
           </Card>
         </Col>
@@ -227,29 +243,30 @@ function CandidateDashboard({ data }) {
 }
 
 function RecruiterDashboard({ data }) {
+  const { t } = useI18n();
   const stats = data?.stats || {};
 
   const recentPublishedCvsColumns = [
     {
-      title: "Candidate",
+      title: t("dashboard.candidate", "Candidate"),
       dataIndex: ["candidate", "name"],
       key: "candidateName",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Email",
+      title: t("dashboard.email", "Email"),
       dataIndex: ["candidate", "email"],
       key: "candidateEmail",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Position",
+      title: t("dashboard.position", "Position"),
       dataIndex: ["position", "title"],
       key: "positionTitle",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Updated At",
+      title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
@@ -258,29 +275,31 @@ function RecruiterDashboard({ data }) {
 
   const recentPositionsColumns = [
     {
-      title: "Title",
+      title: t("dashboard.titleColumn", "Title"),
       dataIndex: "title",
       key: "title",
-      render: (value) => value || "—",
+      render: (value) => value || t("common.none", "—"),
     },
     {
-      title: "Access",
+      title: t("dashboard.access", "Access"),
       dataIndex: "isPublic",
       key: "isPublic",
       render: (isPublic) => (
         <Tag color={isPublic ? "green" : "orange"}>
-          {isPublic ? "Public" : "Restricted"}
+          {isPublic
+            ? t("access.public", "Public")
+            : t("access.restricted", "Restricted")}
         </Tag>
       ),
     },
     {
-      title: "Updated At",
+      title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: formatDate,
     },
     {
-      title: "Version",
+      title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
       width: 100,
@@ -291,54 +310,63 @@ function RecruiterDashboard({ data }) {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <div>
         <Title level={2} style={{ marginBottom: 8 }}>
-          Dashboard
+          {t("dashboard.title", "Dashboard")}
         </Title>
-        <Text type="secondary">Recruiter/admin overview for the current MVP.</Text>
+        <Text type="secondary">
+          {t(
+            "dashboard.recruiterSubtitle",
+            "Recruiter/admin overview for the current MVP.",
+          )}
+        </Text>
       </div>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Total Positions" value={stats.positions || 0} /></Card>
+          <Card><Statistic title={t("dashboard.totalPositions", "Total Positions")} value={stats.positions || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Total Reusable Attributes" value={stats.attributes || 0} /></Card>
+          <Card><Statistic title={t("dashboard.totalAttributes", "Total Reusable Attributes")} value={stats.attributes || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Published CVs" value={stats.publishedCvs || 0} /></Card>
+          <Card><Statistic title={t("dashboard.publishedCvs", "Published CVs")} value={stats.publishedCvs || 0} /></Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <Card>
             <Statistic
-              title="Candidates With Published CVs"
+              title={t("dashboard.candidatesWithPublishedCvs", "Candidates With Published CVs")}
               value={stats.candidatesWithPublishedCvs || 0}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title="Public Positions" value={stats.publicPositions || 0} /></Card>
+          <Card><Statistic title={t("dashboard.publicPositions", "Public Positions")} value={stats.publicPositions || 0} /></Card>
         </Col>
       </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={12}>
-          <Card title="Recent Published CVs">
+          <Card title={t("dashboard.recentPublishedCvs", "Recent Published CVs")}>
             <Table
               rowKey="id"
               columns={recentPublishedCvsColumns}
               dataSource={data?.recentPublishedCvs || []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No published CVs yet" /> }}
+              locale={{
+                emptyText: (
+                  <Empty description={t("dashboard.noPublishedCvs", "No published CVs yet")} />
+                ),
+              }}
             />
           </Card>
         </Col>
         <Col xs={24} xl={12}>
-          <Card title="Recent Positions">
+          <Card title={t("dashboard.recentPositions", "Recent Positions")}>
             <Table
               rowKey="id"
               columns={recentPositionsColumns}
               dataSource={data?.recentPositions || []}
               pagination={false}
-              locale={{ emptyText: <Empty description="No positions yet" /> }}
+              locale={{ emptyText: <Empty description={t("dashboard.noPositions", "No positions yet")} /> }}
             />
           </Card>
         </Col>
@@ -357,6 +385,7 @@ function RecruiterDashboard({ data }) {
 }
 
 export function DashboardPage() {
+  const { t } = useI18n();
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: getDashboardStats,
@@ -364,12 +393,12 @@ export function DashboardPage() {
 
   if (isError) {
     return (
-      <Alert
-        type="error"
-        message="Failed to load dashboard statistics"
-        description={error?.response?.data?.message}
-        showIcon
-      />
+        <Alert
+          type="error"
+          message={t("dashboard.loadError", "Failed to load dashboard statistics")}
+          description={error?.response?.data?.message}
+          showIcon
+        />
     );
   }
 
@@ -377,7 +406,7 @@ export function DashboardPage() {
     return (
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
         <Title level={2} style={{ marginBottom: 0 }}>
-          Dashboard
+          {t("dashboard.title", "Dashboard")}
         </Title>
         <Row gutter={[16, 16]}>
           {[1, 2, 3].map((item) => (
