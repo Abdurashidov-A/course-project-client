@@ -12,10 +12,11 @@ import {
   Space,
   Switch,
   Table,
+  Tag,
   Typography,
   message,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { getAttributes } from "../api/attributeApi";
@@ -26,10 +27,12 @@ import {
 } from "../api/profileAttributeApi";
 import { isCandidate } from "../utils/roles";
 import { useI18n } from "../i18n/I18nProvider";
+import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
+const AUTO_SAVE_DELAY_MS = 2000;
 
 function getDisplayValue(record, t) {
   const type = record.attribute?.type;
@@ -122,11 +125,11 @@ function getFormValue(existingValue, attributeType) {
   return undefined;
 }
 
-function buildSavePayload(attribute, value, existingValue) {
+function buildSavePayload(attribute, value, version) {
   const payload = {};
 
-  if (existingValue) {
-    payload.version = existingValue.version;
+  if (typeof version === "number") {
+    payload.version = version;
   }
 
   if (attribute.type === "PERIOD") {
@@ -151,7 +154,12 @@ function buildSavePayload(attribute, value, existingValue) {
 
 function renderValueInput(attribute, t) {
   if (!attribute) {
-    return <Input disabled placeholder={t("profile.attributePlaceholder", "Select attribute")} />;
+    return (
+      <Input
+        disabled
+        placeholder={t("profile.attributePlaceholder", "Select attribute")}
+      />
+    );
   }
 
   if (attribute.type === "TEXT") {
@@ -159,7 +167,12 @@ function renderValueInput(attribute, t) {
   }
 
   if (attribute.type === "NUMERIC") {
-    return <InputNumber style={{ width: "100%" }} placeholder={t("attributeType.NUMERIC", "Numeric")} />;
+    return (
+      <InputNumber
+        style={{ width: "100%" }}
+        placeholder={t("attributeType.NUMERIC", "Numeric")}
+      />
+    );
   }
 
   if (attribute.type === "BOOLEAN") {
@@ -198,19 +211,69 @@ function renderValueInput(attribute, t) {
   return <Input placeholder={t("profile.value", "Value")} />;
 }
 
+function serializeValue(attributeType, value) {
+  if (attributeType === "DATE") {
+    return value ? dayjs(value).toISOString() : null;
+  }
+
+  if (attributeType === "PERIOD") {
+    return JSON.stringify([
+      value?.[0] ? dayjs(value[0]).toISOString() : null,
+      value?.[1] ? dayjs(value[1]).toISOString() : null,
+    ]);
+  }
+
+  if (attributeType === "BOOLEAN") {
+    return value === undefined ? "undefined" : String(value);
+  }
+
+  if (attributeType === "NUMERIC") {
+    return value === undefined || value === null || value === "" ? "" : String(value);
+  }
+
+  return value ?? "";
+}
+
+function formatTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function CandidateProfilePage({ user }) {
   const { t } = useI18n();
 
   if (!isCandidate(user)) {
-    return <Alert type="warning" message={t("profile.noAccess", "You do not have access to this page")} />;
+    return (
+      <Alert
+        type="warning"
+        message={t("profile.noAccess", "You do not have access to this page")}
+      />
+    );
   }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState("");
 
   const [form] = Form.useForm();
+  const watchedAttributeId = Form.useWatch("attributeId", form);
+  const watchedValue = Form.useWatch("value", form);
   const queryClient = useQueryClient();
+  const saveRequestIdRef = useRef(0);
+  const baselineRef = useRef("");
+  const currentVersionRef = useRef(null);
+  const autoSaveBlockedRef = useRef(false);
+  const previousDraftSerializedRef = useRef("");
+  const initializedRef = useRef(false);
 
   const {
     data: profileAttributes = [],
@@ -226,78 +289,290 @@ export function CandidateProfilePage({ user }) {
     queryFn: () => getAttributes(),
   });
 
-  const selectedAttribute = attributes.find(
-    (attribute) => attribute.id === selectedAttributeId,
+  const selectedAttribute = useMemo(
+    () =>
+      attributes.find((attribute) => attribute.id === selectedAttributeId) ||
+      attributes.find((attribute) => attribute.id === watchedAttributeId),
+    [attributes, selectedAttributeId, watchedAttributeId],
   );
 
   const existingValue = profileAttributes.find(
-    (item) => item.attributeId === selectedAttributeId,
+    (item) => item.attributeId === selectedAttribute?.id,
   );
+
+  function upsertProfileAttributeInCache(savedValue) {
+    queryClient.setQueryData(["profile-attributes"], (current = []) => {
+      const currentItems = Array.isArray(current) ? current : [];
+      const existingIndex = currentItems.findIndex(
+        (item) => item.attributeId === savedValue.attributeId,
+      );
+
+      if (existingIndex === -1) {
+        return [savedValue, ...currentItems];
+      }
+
+      const nextItems = [...currentItems];
+      nextItems[existingIndex] = savedValue;
+      return nextItems;
+    });
+  }
 
   const saveMutation = useMutation({
     mutationFn: ({ attributeId, payload }) =>
       saveProfileAttribute(attributeId, payload),
-    onSuccess: () => {
-      message.success(t("profile.saveSuccess", "Profile attribute saved"));
-      queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
-      setIsModalOpen(false);
-      form.resetFields();
-      setSelectedAttributeId(null);
-    },
-    onError: (error) => {
-      if (error.response?.status === 409) {
-        message.error(t("profile.conflict", "Version conflict. Please refresh and try again."));
+    onSuccess: (savedValue, variables) => {
+      if (variables.requestId < saveRequestIdRef.current) {
         return;
       }
 
-      message.error(t("profile.saveError", "Failed to save profile attribute"));
+      cancelAutoSave();
+      upsertProfileAttributeInCache(savedValue);
+      const normalizedSavedValue = getFormValue(savedValue, selectedAttribute?.type);
+      const nextSerialized = serializeValue(
+        selectedAttribute?.type,
+        normalizedSavedValue,
+      );
+      currentVersionRef.current = savedValue.version ?? null;
+      baselineRef.current = nextSerialized;
+      previousDraftSerializedRef.current = nextSerialized;
+      autoSaveBlockedRef.current = false;
+      setSaveStatus("saved");
+      setLastSavedAt(new Date().toISOString());
+      setSaveError("");
+      form.setFieldValue("value", normalizedSavedValue);
+    },
+    onError: (error, variables) => {
+      if (variables.requestId < saveRequestIdRef.current) {
+        return;
+      }
+
+      cancelAutoSave();
+      autoSaveBlockedRef.current = true;
+
+      if (error.response?.status === 409) {
+        const conflictMessage = t(
+          "profile.reopenAfterConflict",
+          "This value was updated elsewhere. Please reopen the editor.",
+        );
+        setSaveError(conflictMessage);
+        message.error(conflictMessage);
+        queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
+      } else {
+        setSaveError(t("profile.saveError", "Failed to save profile attribute"));
+        message.error(
+          t("profile.saveError", "Failed to save profile attribute"),
+        );
+      }
+
+      setSaveStatus("error");
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteProfileAttributes,
     onSuccess: () => {
-      message.success(t("profile.deleteSuccess", "Profile attribute value deleted"));
+      message.success(
+        t("profile.deleteSuccess", "Profile attribute value deleted"),
+      );
       queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
       setSelectedRowKeys([]);
     },
     onError: () => {
-      message.error(t("profile.deleteError", "Failed to delete profile attribute value"));
+      message.error(
+        t(
+          "profile.deleteError",
+          "Failed to delete profile attribute value",
+        ),
+      );
     },
   });
+
+  function resetAutoSaveState() {
+    initializedRef.current = false;
+    baselineRef.current = "";
+    saveRequestIdRef.current = 0;
+    currentVersionRef.current = null;
+    autoSaveBlockedRef.current = false;
+    previousDraftSerializedRef.current = "";
+    setSaveStatus("idle");
+    setLastSavedAt(null);
+    setSaveError("");
+  }
+
+  function applyAttributeSelection(attributeId) {
+    cancelAutoSave();
+    initializedRef.current = false;
+
+    const nextAttribute =
+      attributes.find((attribute) => attribute.id === attributeId) || null;
+    const nextExistingValue = profileAttributes.find(
+      (item) => item.attributeId === attributeId,
+    );
+    const nextFormValue = nextAttribute
+      ? getFormValue(nextExistingValue, nextAttribute.type)
+      : undefined;
+    const nextSerialized = nextAttribute
+      ? serializeValue(nextAttribute.type, nextFormValue)
+      : "";
+
+    setSelectedAttributeId(attributeId);
+    form.setFieldsValue({
+      attributeId,
+      value: nextFormValue,
+    });
+
+    baselineRef.current = nextSerialized;
+    previousDraftSerializedRef.current = nextSerialized;
+    currentVersionRef.current = nextExistingValue?.version ?? null;
+    autoSaveBlockedRef.current = false;
+    setSaveStatus(nextExistingValue ? "saved" : "idle");
+    setLastSavedAt(nextExistingValue?.updatedAt || null);
+    setSaveError("");
+    initializedRef.current = true;
+  }
+
+  function saveCurrentValue() {
+    if (!isModalOpen || !selectedAttribute) {
+      return;
+    }
+
+    if (saveMutation.isPending) {
+      return;
+    }
+
+    const currentValue = form.getFieldValue("value");
+    const currentSerialized = serializeValue(selectedAttribute.type, currentValue);
+
+    if (currentSerialized === baselineRef.current) {
+      if (saveStatus === "saved") {
+        cancelAutoSave();
+      }
+      return;
+    }
+
+    const payload = buildSavePayload(
+      selectedAttribute,
+      currentValue,
+      currentVersionRef.current,
+    );
+    const requestId = saveRequestIdRef.current + 1;
+    saveRequestIdRef.current = requestId;
+    setSaveStatus("saving");
+    setSaveError("");
+
+    saveMutation.mutate({
+      attributeId: selectedAttribute.id,
+      payload,
+      requestId,
+    });
+  }
+
+  const { schedule: scheduleAutoSave, cancel: cancelAutoSave } =
+    useDebouncedCallback(saveCurrentValue, AUTO_SAVE_DELAY_MS);
 
   useEffect(() => {
     if (!isModalOpen || !selectedAttribute) {
       return;
     }
 
+    const nextValue = getFormValue(existingValue, selectedAttribute.type);
     form.setFieldsValue({
       attributeId: selectedAttribute.id,
-      value: getFormValue(existingValue, selectedAttribute.type),
+      value: nextValue,
     });
+    const initialSerialized = serializeValue(selectedAttribute.type, nextValue);
+    baselineRef.current = initialSerialized;
+    previousDraftSerializedRef.current = initialSerialized;
+    currentVersionRef.current = existingValue?.version ?? null;
+    autoSaveBlockedRef.current = false;
+    initializedRef.current = true;
+    setSaveStatus(existingValue ? "saved" : "idle");
+    setLastSavedAt(existingValue?.updatedAt || null);
+    setSaveError("");
   }, [existingValue, form, isModalOpen, selectedAttribute]);
+
+  useEffect(() => {
+    if (!isModalOpen || !selectedAttribute || !initializedRef.current) {
+      return;
+    }
+
+    const currentSerialized = serializeValue(selectedAttribute.type, watchedValue);
+    const hasRealUserChange =
+      currentSerialized !== previousDraftSerializedRef.current;
+    previousDraftSerializedRef.current = currentSerialized;
+
+    if (!hasRealUserChange) {
+      return;
+    }
+
+    if (saveStatus === "error") {
+      autoSaveBlockedRef.current = false;
+      setSaveError("");
+    }
+
+    if (currentSerialized === baselineRef.current) {
+      if (saveStatus !== "saved") {
+        setSaveStatus("idle");
+      }
+      cancelAutoSave();
+      return;
+    }
+
+    if (saveMutation.isPending || autoSaveBlockedRef.current) {
+      return;
+    }
+
+    setSaveStatus("unsaved");
+    cancelAutoSave();
+    scheduleAutoSave();
+  }, [
+    cancelAutoSave,
+    isModalOpen,
+    saveMutation.isPending,
+    scheduleAutoSave,
+    selectedAttribute,
+    watchedValue,
+  ]);
+
+  useEffect(() => () => cancelAutoSave(), [cancelAutoSave]);
 
   function openModal() {
     form.resetFields();
+    resetAutoSaveState();
     setSelectedAttributeId(null);
     setIsModalOpen(true);
   }
 
-  function handleSubmit(values) {
-    if (!selectedAttribute) {
+  function closeModal() {
+    cancelAutoSave();
+    setIsModalOpen(false);
+    form.resetFields();
+    setSelectedAttributeId(null);
+    resetAutoSaveState();
+  }
+
+  function handleSubmit() {
+    if (saveMutation.isPending) {
       return;
     }
 
-    const payload = buildSavePayload(
-      selectedAttribute,
-      values.value,
-      existingValue,
-    );
+    const currentSerialized = selectedAttribute
+      ? serializeValue(selectedAttribute.type, form.getFieldValue("value"))
+      : "";
 
-    saveMutation.mutate({
-      attributeId: selectedAttribute.id,
-      payload,
-    });
+    if (saveStatus === "error" && !isDirty) {
+      closeModal();
+      return;
+    }
+
+    if (saveStatus === "saved" && currentSerialized === baselineRef.current) {
+      closeModal();
+      return;
+    }
+
+    cancelAutoSave();
+    autoSaveBlockedRef.current = false;
+    saveCurrentValue();
   }
 
   const rowSelection = {
@@ -307,7 +582,6 @@ export function CandidateProfilePage({ user }) {
 
   const columns = [
     {
-      title: "Attribute",
       title: t("profile.attribute", "Attribute"),
       dataIndex: ["attribute", "name"],
       key: "attributeName",
@@ -337,6 +611,32 @@ export function CandidateProfilePage({ user }) {
     },
   ];
 
+  const statusTag =
+    saveStatus === "unsaved" ? (
+      <Tag color="orange">{t("profile.unsavedChanges", "Unsaved changes")}</Tag>
+    ) : saveStatus === "saving" ? (
+      <Tag color="processing">{t("profile.saving", "Saving...")}</Tag>
+    ) : saveStatus === "saved" ? (
+      <Tag color="green">{t("profile.saved", "Saved")}</Tag>
+    ) : saveStatus === "error" ? (
+      <Tag color="red">{t("profile.errorSaving", "Error saving")}</Tag>
+    ) : null;
+
+  const currentSerialized = selectedAttribute
+    ? serializeValue(selectedAttribute.type, watchedValue)
+    : "";
+  const isDirty =
+    Boolean(selectedAttribute) &&
+    initializedRef.current &&
+    currentSerialized !== baselineRef.current;
+  const modalOkText = saveMutation.isPending
+    ? t("profile.saving", "Saving...")
+    : saveStatus === "saved" && !isDirty
+      ? t("profile.saved", "Saved")
+      : !isDirty
+        ? t("common.close", "Close")
+        : t("profile.saveNow", "Save now");
+
   return (
     <Card>
       <Space
@@ -357,11 +657,25 @@ export function CandidateProfilePage({ user }) {
               "These values are stored once in the candidate profile and will be reused later for automatic CV generation.",
             )}
           </Text>
+          <div style={{ marginTop: 8 }}>
+            <Tag color="blue">
+              {t("profile.autoSaveEnabled", "Auto-save enabled")}
+            </Tag>
+            <Text type="secondary">
+              {t(
+                "profile.autoSavesAfterChanges",
+                "Auto-saves after changes",
+              )}
+            </Text>
+          </div>
         </div>
 
         <Space>
           <Popconfirm
-            title={t("profile.deleteConfirmTitle", "Delete selected profile values?")}
+            title={t(
+              "profile.deleteConfirmTitle",
+              "Delete selected profile values?",
+            )}
             description={t(
               "profile.deleteConfirmBody",
               "This will remove values only from candidate profile, not from Attribute Library.",
@@ -406,22 +720,35 @@ export function CandidateProfilePage({ user }) {
       <Modal
         title={t("profile.addOrUpdate", "Add / Update Attribute Value")}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={() => form.submit()}
-        confirmLoading={saveMutation.isPending}
+        onCancel={closeModal}
+        onOk={handleSubmit}
+        okText={modalOkText}
+        okButtonProps={{ disabled: saveMutation.isPending }}
+        confirmLoading={saveMutation.isPending && saveStatus === "saving"}
         destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             label={t("profile.attribute", "Attribute")}
             name="attributeId"
-            rules={[{ required: true, message: t("profile.selectAttribute", "Please select attribute") }]}
+            rules={[
+              {
+                required: true,
+                message: t(
+                  "profile.selectAttribute",
+                  "Please select attribute",
+                ),
+              },
+            ]}
           >
             <Select
               showSearch
               placeholder={t("profile.attributePlaceholder", "Select attribute")}
               optionFilterProp="label"
-              onChange={(value) => setSelectedAttributeId(value)}
+              onChange={(value) => {
+                resetAutoSaveState();
+                applyAttributeSelection(value);
+              }}
               options={attributes.map((attribute) => ({
                 label: `${attribute.name} (${attribute.type})`,
                 value: attribute.id,
@@ -437,9 +764,35 @@ export function CandidateProfilePage({ user }) {
               selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
             }
           >
-              {renderValueInput(selectedAttribute, t)}
-            </Form.Item>
-          </Form>
+            {renderValueInput(selectedAttribute, t)}
+          </Form.Item>
+
+          <Space
+            direction="vertical"
+            size={4}
+            style={{ width: "100%", marginTop: 8 }}
+          >
+            <Space wrap>
+              <Tag color="blue">
+                {t("profile.autoSaveEnabled", "Auto-save enabled")}
+              </Tag>
+              {statusTag}
+            </Space>
+            <Text type="secondary">
+              {t(
+                "profile.changesAutoSaved",
+                "Changes will be saved automatically",
+              )}{" "}
+              ({AUTO_SAVE_DELAY_MS / 1000}s)
+            </Text>
+            {lastSavedAt ? (
+              <Text type="secondary">
+                {t("profile.lastSaved", "Last saved")} {formatTime(lastSavedAt)}
+              </Text>
+            ) : null}
+            {saveError ? <Text type="danger">{saveError}</Text> : null}
+          </Space>
+        </Form>
       </Modal>
     </Card>
   );
