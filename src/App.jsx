@@ -31,6 +31,7 @@ import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { useI18n } from "./i18n/I18nProvider";
+import { OAuthCallbackPage } from "./pages/OAuthCallbackPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -105,6 +106,7 @@ export default function App() {
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [cvPreviewSource, setCvPreviewSource] = useState("my-cvs");
+  const isOAuthCallbackPath = window.location.pathname === "/oauth/callback";
 
   return (
     <ConfigProvider
@@ -117,7 +119,9 @@ export default function App() {
       }}
     >
       <div className={`app-shell app-theme-${themeMode}`}>
-        {isAuthenticated ? (
+        {isOAuthCallbackPath ? (
+          <OAuthCallbackPage />
+        ) : isAuthenticated ? (
           (() => {
             const menuItems = getMenuItems(user, t);
             const menuSelectedKey =

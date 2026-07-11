@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography, message } from "antd";
+import { Button, Card, Divider, Space, Typography, message } from "antd";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useI18n();
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
   const devUsers = [
     {
@@ -33,6 +34,11 @@ export default function LoginPage() {
     }
   }
 
+  function handleOAuthLogin(provider) {
+    const oauthUrl = new URL(`/api/auth/oauth/${provider}`, apiBaseUrl);
+    window.location.assign(oauthUrl.toString());
+  }
+
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
       <Card style={{ width: 420 }}>
@@ -43,6 +49,19 @@ export default function LoginPage() {
               {t("login.subtitle", "Development login for testing roles")}
             </Text>
           </div>
+
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Button block onClick={() => handleOAuthLogin("google")}>
+              {t("login.google", "Continue with Google")}
+            </Button>
+            <Button block onClick={() => handleOAuthLogin("github")}>
+              {t("login.github", "Continue with GitHub")}
+            </Button>
+          </Space>
+
+          <Divider style={{ margin: 0 }}>
+            {t("login.orDemo", "Or use demo login")}
+          </Divider>
 
           <Space direction="vertical" style={{ width: "100%" }}>
             {devUsers.map((user) => (

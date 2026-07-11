@@ -11,15 +11,23 @@ export function AuthProvider({ children }) {
       return null;
     }
 
-    return JSON.parse(savedUser);
+    try {
+      return JSON.parse(savedUser);
+    } catch {
+      localStorage.removeItem("cvms_user");
+      return null;
+    }
   });
+
+  function setAuthenticatedUser(loggedUser) {
+    setUser(loggedUser);
+    localStorage.setItem("cvms_user", JSON.stringify(loggedUser));
+    return loggedUser;
+  }
 
   async function login(email) {
     const loggedUser = await devLogin(email);
-    setUser(loggedUser);
-    localStorage.setItem("cvms_user", JSON.stringify(loggedUser));
-
-    return loggedUser;
+    return setAuthenticatedUser(loggedUser);
   }
 
   function logout() {
@@ -32,6 +40,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: Boolean(user),
     login,
     logout,
+    setAuthenticatedUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

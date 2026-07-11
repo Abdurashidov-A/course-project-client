@@ -7,3 +7,11 @@ export async function devLogin(email) {
 
   return response.data?.user;
 }
+
+export async function completeOAuthLogin(token) {
+  const response = await api.post("/api/auth/oauth/complete", {
+    token,
+  });
+
+  return response.data?.user;
+}
