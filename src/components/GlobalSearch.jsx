@@ -10,7 +10,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { searchGlobal } from "../api/searchApi";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -140,10 +140,20 @@ export function GlobalSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchResult, setSearchResult] = useState(null);
+  const openTimerRef = useRef(null);
 
   const sections = useMemo(
     () => buildSections(searchResult?.role, searchResult?.results, t),
     [searchResult, t],
+  );
+
+  useEffect(
+    () => () => {
+      if (openTimerRef.current) {
+        window.clearTimeout(openTimerRef.current);
+      }
+    },
+    [],
   );
 
   async function handleSearch(value) {
@@ -156,7 +166,15 @@ export function GlobalSearch() {
 
     setIsLoading(true);
     setErrorMessage("");
-    setIsModalOpen(true);
+
+    if (openTimerRef.current) {
+      window.clearTimeout(openTimerRef.current);
+    }
+
+    openTimerRef.current = window.setTimeout(() => {
+      setIsModalOpen(true);
+      openTimerRef.current = null;
+    }, 0);
 
     try {
       const response = await searchGlobal(trimmedValue);
@@ -177,6 +195,10 @@ export function GlobalSearch() {
         enterButton={t("search.button", "Search")}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
+        onPressEnter={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
         onSearch={handleSearch}
         loading={isLoading}
         style={{ width: 360 }}
