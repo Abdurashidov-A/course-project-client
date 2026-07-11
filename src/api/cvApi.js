@@ -6,6 +6,16 @@ export async function getMyCvs() {
   return response.data;
 }
 
+export async function deleteCvs(ids) {
+  const response = await api.delete("/api/cvs", {
+    data: {
+      ids,
+    },
+  });
+
+  return response.data;
+}
+
 export async function getCvById(cvId) {
   const response = await api.get(`/api/cvs/${cvId}`);
 
