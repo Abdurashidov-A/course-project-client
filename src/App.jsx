@@ -15,7 +15,6 @@ import { useAuth } from "./context/AuthContext";
 import {
   canManageLibrary,
   canManageUsers,
-  canViewPublishedCvs,
   isCandidate,
 } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
@@ -32,11 +31,36 @@ import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { useI18n } from "./i18n/I18nProvider";
 import { OAuthCallbackPage } from "./pages/OAuthCallbackPage";
+import { PublicDashboardPage } from "./pages/PublicDashboardPage";
+import { PublicPositionsPage } from "./pages/PublicPositionsPage";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 function getMenuItems(user, t) {
+  if (!user) {
+    return [
+      {
+        key: "dashboard",
+        label: t("guest.publicDashboard", "Public Dashboard"),
+        title: t("guest.publicDashboard", "Public Dashboard"),
+        description: "Public overview page for guest visitors.",
+      },
+      {
+        key: "positions",
+        label: t("guest.publicPositions", "Public Positions"),
+        title: t("guest.publicPositions", "Public Positions"),
+        description: "Public table view of positions.",
+      },
+      {
+        key: "login",
+        label: t("header.login", "Login"),
+        title: t("header.login", "Login"),
+        description: "Login page for demo or OAuth access.",
+      },
+    ];
+  }
+
   const items = [
     {
       key: "dashboard",
@@ -107,6 +131,20 @@ export default function App() {
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [cvPreviewSource, setCvPreviewSource] = useState("my-cvs");
   const isOAuthCallbackPath = window.location.pathname === "/oauth/callback";
+  const menuItems = getMenuItems(user, t);
+  const isGuest = !isAuthenticated;
+  const effectiveSelectedPageKey =
+    !isGuest && selectedPageKey === "login" ? "dashboard" : selectedPageKey;
+  const menuSelectedKey =
+    effectiveSelectedPageKey === "cv-preview"
+      ? cvPreviewSource === "position-cvs"
+        ? "positions"
+        : "my-cvs"
+      : effectiveSelectedPageKey === "position-cvs"
+        ? "positions"
+        : effectiveSelectedPageKey;
+  const selectedPage =
+    menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
 
   return (
     <ConfigProvider
@@ -121,143 +159,153 @@ export default function App() {
       <div className={`app-shell app-theme-${themeMode}`}>
         {isOAuthCallbackPath ? (
           <OAuthCallbackPage />
-        ) : isAuthenticated ? (
-          (() => {
-            const menuItems = getMenuItems(user, t);
-            const menuSelectedKey =
-              selectedPageKey === "cv-preview"
-                ? cvPreviewSource === "position-cvs"
-                  ? "positions"
-                  : "my-cvs"
-                : selectedPageKey === "position-cvs"
-                  ? "positions"
-                  : selectedPageKey;
-            const selectedPage =
-              menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
-
-            return (
-              <Layout style={{ minHeight: "100vh", background: "var(--app-bg)" }}>
-                <Header className="app-header">
-                  <div className="app-brand">{t("app.title", "CV Management System")}</div>
-
-                  <Space wrap>
-                    <GlobalSearch />
-                    <Space size="small">
-                      <Text className="app-header-text">{t("header.theme", "Theme")}</Text>
-                      <Switch
-                        checked={isDarkMode}
-                        checkedChildren={t("theme.dark", "Dark")}
-                        unCheckedChildren={t("theme.light", "Light")}
-                        onChange={(checked) =>
-                          setThemeMode(checked ? "dark" : "light")
-                        }
-                      />
-                    </Space>
-                    <Space size="small">
-                      <Text className="app-header-text">
-                        {t("header.language", "Language")}
-                      </Text>
-                      <Segmented
-                        size="small"
-                        value={language}
-                        onChange={setLanguage}
-                        options={[
-                          { label: "EN", value: "en" },
-                          { label: "UZ", value: "uz" },
-                        ]}
-                      />
-                    </Space>
-                    <Text className="app-header-text">{user.name}</Text>
-                    <Button onClick={logout}>{t("header.logout", "Logout")}</Button>
-                  </Space>
-                </Header>
-
-                <Layout style={{ background: "var(--app-bg)" }}>
-                  <Sider width={240} theme={isDarkMode ? "dark" : "light"}>
-                    <Menu
-                      mode="inline"
-                      theme={isDarkMode ? "dark" : "light"}
-                      selectedKeys={[menuSelectedKey]}
-                      onClick={({ key }) => {
-                        setSelectedPageKey(key);
-
-                        if (key !== "cv-preview") {
-                          setSelectedCvId(null);
-                        }
-
-                        if (key !== "position-cvs" && key !== "cv-preview") {
-                          setSelectedPositionId(null);
-                        }
-                      }}
-                      items={menuItems.map((item) => ({
-                        key: item.key,
-                        label: item.label,
-                      }))}
-                      style={{ height: "100%", borderRight: 0 }}
-                    />
-                  </Sider>
-
-                  <Content className="app-content">
-                    {selectedPageKey === "dashboard" ? (
-                      <DashboardPage />
-                    ) : selectedPageKey === "attribute-library" ? (
-                      <AttributeLibraryPage user={user} />
-                    ) : selectedPageKey === "positions" ? (
-                      <PositionsPage
-                        user={user}
-                        onViewPublishedCvs={(positionId) => {
-                          setSelectedPositionId(positionId);
-                          setSelectedPageKey("position-cvs");
-                        }}
-                      />
-                    ) : selectedPageKey === "my-profile" ? (
-                      <CandidateProfilePage user={user} />
-                    ) : selectedPageKey === "my-cvs" ? (
-                      <MyCvsPage
-                        user={user}
-                        onOpenCv={(cvId) => {
-                          setSelectedCvId(cvId);
-                          setCvPreviewSource("my-cvs");
-                          setSelectedPageKey("cv-preview");
-                        }}
-                      />
-                    ) : selectedPageKey === "my-projects" ? (
-                      <MyProjectsPage user={user} />
-                    ) : selectedPageKey === "position-cvs" ? (
-                      <PositionCvsPage
-                        user={user}
-                        positionId={selectedPositionId}
-                        onBack={() => {
-                          setSelectedPageKey("positions");
-                        }}
-                        onOpenCv={(cvId) => {
-                          setSelectedCvId(cvId);
-                          setCvPreviewSource("position-cvs");
-                          setSelectedPageKey("cv-preview");
-                        }}
-                      />
-                    ) : selectedPageKey === "admin-users" ? (
-                      <AdminUsersPage user={user} />
-                    ) : selectedPageKey === "cv-preview" ? (
-                      <CvPreviewPage
-                        cvId={selectedCvId}
-                        onBack={() => {
-                          setSelectedPageKey(cvPreviewSource);
-                        }}
-                      />
-                    ) : (
-                      <PagePlaceholder
-                        title={selectedPage.title}
-                        description={selectedPage.description}
-                      />
-                    )}
-                  </Content>
-                </Layout>
-              </Layout>
-            );
-          })()
         ) : (
-          <LoginPage />
+          <Layout style={{ minHeight: "100vh", background: "var(--app-bg)" }}>
+            <Header className="app-header">
+              <div className="app-brand">{t("app.title", "CV Management System")}</div>
+
+              <Space wrap>
+                <GlobalSearch />
+                <Space size="small">
+                  <Text className="app-header-text">{t("header.theme", "Theme")}</Text>
+                  <Switch
+                    checked={isDarkMode}
+                    checkedChildren={t("theme.dark", "Dark")}
+                    unCheckedChildren={t("theme.light", "Light")}
+                    onChange={(checked) =>
+                      setThemeMode(checked ? "dark" : "light")
+                    }
+                  />
+                </Space>
+                <Space size="small">
+                  <Text className="app-header-text">
+                    {t("header.language", "Language")}
+                  </Text>
+                  <Segmented
+                    size="small"
+                    value={language}
+                    onChange={setLanguage}
+                    options={[
+                      { label: "EN", value: "en" },
+                      { label: "UZ", value: "uz" },
+                    ]}
+                  />
+                </Space>
+                <Text className="app-header-text">
+                  {isGuest ? t("guest.guest", "Guest") : user.name}
+                </Text>
+                {isGuest ? (
+                  <Button onClick={() => setSelectedPageKey("login")}>
+                    {t("header.login", "Login")}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      logout();
+                      setSelectedPageKey("dashboard");
+                      setSelectedCvId(null);
+                      setSelectedPositionId(null);
+                      setCvPreviewSource("my-cvs");
+                    }}
+                  >
+                    {t("header.logout", "Logout")}
+                  </Button>
+                )}
+              </Space>
+            </Header>
+
+            <Layout style={{ background: "var(--app-bg)" }}>
+              <Sider width={240} theme={isDarkMode ? "dark" : "light"}>
+                <Menu
+                  mode="inline"
+                  theme={isDarkMode ? "dark" : "light"}
+                  selectedKeys={[menuSelectedKey]}
+                  onClick={({ key }) => {
+                    setSelectedPageKey(key);
+
+                    if (key !== "cv-preview") {
+                      setSelectedCvId(null);
+                    }
+
+                    if (key !== "position-cvs" && key !== "cv-preview") {
+                      setSelectedPositionId(null);
+                    }
+                  }}
+                  items={menuItems.map((item) => ({
+                    key: item.key,
+                    label: item.label,
+                  }))}
+                  style={{ height: "100%", borderRight: 0 }}
+                />
+              </Sider>
+
+              <Content className="app-content">
+                {isGuest ? (
+                  effectiveSelectedPageKey === "positions" ? (
+                    <PublicPositionsPage
+                      onOpenLogin={() => setSelectedPageKey("login")}
+                    />
+                  ) : effectiveSelectedPageKey === "login" ? (
+                    <LoginPage embedded />
+                  ) : (
+                    <PublicDashboardPage />
+                  )
+                ) : effectiveSelectedPageKey === "dashboard" ? (
+                  <DashboardPage />
+                ) : effectiveSelectedPageKey === "attribute-library" ? (
+                  <AttributeLibraryPage user={user} />
+                ) : effectiveSelectedPageKey === "positions" ? (
+                  <PositionsPage
+                    user={user}
+                    onViewPublishedCvs={(positionId) => {
+                      setSelectedPositionId(positionId);
+                      setSelectedPageKey("position-cvs");
+                    }}
+                  />
+                ) : effectiveSelectedPageKey === "my-profile" ? (
+                  <CandidateProfilePage user={user} />
+                ) : effectiveSelectedPageKey === "my-cvs" ? (
+                  <MyCvsPage
+                    user={user}
+                    onOpenCv={(cvId) => {
+                      setSelectedCvId(cvId);
+                      setCvPreviewSource("my-cvs");
+                      setSelectedPageKey("cv-preview");
+                    }}
+                  />
+                ) : effectiveSelectedPageKey === "my-projects" ? (
+                  <MyProjectsPage user={user} />
+                ) : effectiveSelectedPageKey === "position-cvs" ? (
+                  <PositionCvsPage
+                    user={user}
+                    positionId={selectedPositionId}
+                    onBack={() => {
+                      setSelectedPageKey("positions");
+                    }}
+                    onOpenCv={(cvId) => {
+                      setSelectedCvId(cvId);
+                      setCvPreviewSource("position-cvs");
+                      setSelectedPageKey("cv-preview");
+                    }}
+                  />
+                ) : effectiveSelectedPageKey === "admin-users" ? (
+                  <AdminUsersPage user={user} />
+                ) : effectiveSelectedPageKey === "cv-preview" ? (
+                  <CvPreviewPage
+                    cvId={selectedCvId}
+                    onBack={() => {
+                      setSelectedPageKey(cvPreviewSource);
+                    }}
+                  />
+                ) : (
+                  <PagePlaceholder
+                    title={selectedPage.title}
+                    description={selectedPage.description}
+                  />
+                )}
+              </Content>
+            </Layout>
+          </Layout>
         )}
       </div>
     </ConfigProvider>

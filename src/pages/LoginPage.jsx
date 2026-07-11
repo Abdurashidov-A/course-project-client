@@ -4,7 +4,7 @@ import { useI18n } from "../i18n/I18nProvider";
 
 const { Title, Text } = Typography;
 
-export default function LoginPage() {
+export default function LoginPage({ embedded = false }) {
   const { login } = useAuth();
   const { t } = useI18n();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -40,7 +40,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+    <div
+      style={{
+        minHeight: embedded ? "auto" : "100vh",
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
       <Card style={{ width: 420 }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div>

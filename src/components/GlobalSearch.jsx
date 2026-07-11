@@ -26,6 +26,18 @@ function formatDate(value) {
 }
 
 function buildSections(role, results = {}, t) {
+  if (role === "GUEST") {
+    return [
+      {
+        key: "positions",
+        title: t("guest.publicPositions", "Public Positions"),
+        items: results.positions || [],
+        renderDescription: (item) =>
+          item.shortDescription || t("common.noDescription", "No description"),
+      },
+    ];
+  }
+
   if (role === "CANDIDATE") {
     return [
       {
