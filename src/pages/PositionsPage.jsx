@@ -25,7 +25,7 @@ import {
 } from "../api/positionApi";
 import { createCv } from "../api/cvApi";
 import { getAttributes } from "../api/attributeApi";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   canCreateCv,
   canManagePositions,
@@ -115,6 +115,23 @@ function buildAccessRulesPayload(accessRules = [], attributesById) {
 
     return payload;
   });
+}
+
+function syncRequiredAttributeIds(form, attributeIds) {
+  const currentRequiredAttributeIds = form.getFieldValue("requiredAttributeIds");
+
+  if (!Array.isArray(currentRequiredAttributeIds)) {
+    return;
+  }
+
+  const allowedAttributeIds = new Set(attributeIds);
+  const nextRequiredAttributeIds = currentRequiredAttributeIds.filter((attributeId) =>
+    allowedAttributeIds.has(attributeId),
+  );
+
+  if (nextRequiredAttributeIds.length !== currentRequiredAttributeIds.length) {
+    form.setFieldValue("requiredAttributeIds", nextRequiredAttributeIds);
+  }
 }
 
 function AccessRulesEditor({ form, attributes, fieldName, t }) {
@@ -293,11 +310,20 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const selectedEditAttributeIds =
     Form.useWatch("attributeIds", editForm) || [];
   const queryClient = useQueryClient();
+  const positionsQueryKey = ["positions", user?.id || "guest"];
+
+  useEffect(() => {
+    syncRequiredAttributeIds(form, selectedCreateAttributeIds);
+  }, [form, selectedCreateAttributeIds]);
+
+  useEffect(() => {
+    syncRequiredAttributeIds(editForm, selectedEditAttributeIds);
+  }, [editForm, selectedEditAttributeIds]);
 
   const createPositionMutation = useMutation({
     mutationFn: createPosition,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: positionsQueryKey });
       form.resetFields();
       setIsCreateModalOpen(false);
     },
@@ -308,17 +334,17 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
   const deletePositionsMutation = useMutation({
     mutationFn: deletePositions,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: positionsQueryKey });
       setSelectedPositionIds([]);
     },
   });
 
   const duplicatePositionMutation = useMutation({
     mutationFn: duplicatePosition,
-    onSuccess: () => {
+    onSuccess: async () => {
       message.success(t("positions.duplicateSuccess", "Position duplicated successfully"));
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: positionsQueryKey });
       setSelectedPositionIds([]);
     },
     onError: (error) => {
@@ -346,13 +372,34 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
   const updatePositionMutation = useMutation({
     mutationFn: ({ id, values }) => updatePosition(id, values),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
+    onSuccess: async (updatedPosition) => {
+      queryClient.setQueryData(positionsQueryKey, (currentPositions = []) =>
+        currentPositions.map((position) =>
+          position.id === updatedPosition.id ? updatedPosition : position,
+        ),
+      );
+      await queryClient.invalidateQueries({ queryKey: positionsQueryKey });
       setIsEditModalOpen(false);
       setSelectedPositionIds([]);
       editForm.resetFields();
     },
     onError: (error) => {
+      if (error.response?.status === 409) {
+        message.warning(
+          error.response?.data?.message ||
+            "Position was changed by someone else. Please reload and try again.",
+        );
+        return;
+      }
+
+      if (error.response?.status === 403) {
+        message.warning(
+          error.response?.data?.message ||
+            "Only recruiters/admins can update positions",
+        );
+        return;
+      }
+
       message.error(error.response?.data?.message || t("common.error", "Error"));
     },
   });
@@ -385,7 +432,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["positions"],
+    queryKey: positionsQueryKey,
     queryFn: getPositions,
   });
 
