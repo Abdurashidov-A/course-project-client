@@ -373,6 +373,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const updatePositionMutation = useMutation({
     mutationFn: ({ id, values }) => updatePosition(id, values),
     onSuccess: async (updatedPosition) => {
+      message.success(
+        t("positions.updateSuccess", "Position updated successfully"),
+      );
       queryClient.setQueryData(positionsQueryKey, (currentPositions = []) =>
         currentPositions.map((position) =>
           position.id === updatedPosition.id ? updatedPosition : position,
