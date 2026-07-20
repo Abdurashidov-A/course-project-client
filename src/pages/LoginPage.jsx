@@ -41,13 +41,14 @@ export default function LoginPage({ embedded = false }) {
 
   return (
     <div
+      className="login-page"
       style={{
         minHeight: embedded ? "auto" : "100vh",
         display: "grid",
         placeItems: "center",
       }}
     >
-      <Card style={{ width: 420 }}>
+      <Card className="login-page__card" style={{ width: "100%", maxWidth: 420 }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div>
             <Title level={3}>{t("login.title", "CV Management System")}</Title>

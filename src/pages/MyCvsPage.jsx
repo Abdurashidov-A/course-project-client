@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { Alert, Button, Empty, Modal, Space, Table, Tag, Typography, message } from "antd";
+import {
+  Alert,
+  Button,
+  Empty,
+  Grid,
+  Modal,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCvs, getMyCvs } from "../api/cvApi";
 import { isCandidate } from "../utils/roles";
@@ -17,6 +28,7 @@ function formatDate(value) {
 
 export function MyCvsPage({ user, onOpenCv }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
@@ -105,10 +117,16 @@ export function MyCvsPage({ user, onOpenCv }) {
   };
 
   return (
-    <div>
-      <Title level={2}>{t("myCvs.title", "My CVs")}</Title>
+    <div className="responsive-page">
+      <div className="responsive-page__header">
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title">
+            {t("myCvs.title", "My CVs")}
+          </Title>
+        </div>
+      </div>
 
-      <Space wrap style={{ marginBottom: 16 }}>
+      <Space wrap className="responsive-toolbar" style={{ marginBottom: 16 }}>
         <Text type="secondary">
           {t("common.selected", "Selected")}: {selectedRowKeys.length}
         </Text>
@@ -136,12 +154,14 @@ export function MyCvsPage({ user, onOpenCv }) {
       </Space>
 
       <Table
+        className="responsive-table"
         rowKey="id"
         rowSelection={rowSelection}
         columns={columns}
         dataSource={data}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
+        scroll={!screens.lg ? { x: 880 } : undefined}
         onRow={(record) => ({
           onClick: (event) => {
             if (

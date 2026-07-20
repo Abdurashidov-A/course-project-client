@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Empty,
+  Grid,
   Input,
   List,
   Modal,
@@ -32,6 +33,7 @@ function formatDate(value) {
 export function PositionDiscussion({ positionId, positionTitle, open, onClose }) {
   const [content, setContent] = useState("");
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
 
   const {
     data,
@@ -84,11 +86,12 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
 
   return (
     <Modal
+      className="responsive-modal position-discussion-modal"
       title={`${t("discussion.title", "Discussion")} — ${positionTitle || t("nav.positions", "Position")}`}
       open={open}
       onCancel={onClose}
       footer={null}
-      width={800}
+      width={screens.lg ? 800 : "calc(100vw - 24px)"}
       destroyOnHidden
     >
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -114,6 +117,7 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
         ) : null}
 
         <List
+          className="position-discussion-modal__list"
           bordered
           loading={isLoading}
           dataSource={data?.posts || []}
@@ -147,7 +151,11 @@ export function PositionDiscussion({ positionId, positionTitle, open, onClose })
           <Text type="secondary">
             {t("discussion.markdownSupported", "Markdown supported")}
           </Text>
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
+          <Space
+            wrap
+            className="position-discussion-modal__footer"
+            style={{ width: "100%", justifyContent: "space-between" }}
+          >
             <Text type="secondary">{content.trim().length}/1000</Text>
             <Button
               type="primary"

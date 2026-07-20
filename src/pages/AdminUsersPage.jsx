@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Empty,
+  Grid,
   Input,
   Modal,
   Select,
@@ -33,6 +34,7 @@ function formatDate(value) {
 
 export function AdminUsersPage({ user }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
   const canAccess = isAdmin(user);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -41,7 +43,7 @@ export function AdminUsersPage({ user }) {
   const [search, setSearch] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize] = useState(20);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [nextRole, setNextRole] = useState();
 
@@ -184,175 +186,186 @@ export function AdminUsersPage({ user }) {
   }
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {t("adminUsers.title", "Admin Users")}
-        </Title>
-        <Text type="secondary">{t("nav.adminUsers", "Users")}</Text>
-      </div>
-
-      <Space wrap>
-        <Input.Search
-          placeholder={t("adminUsers.search", "Search users")}
-          allowClear
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onSearch={(value) => {
-            setPage(1);
-            setSearchValue(value.trim());
-          }}
-          style={{ width: 260 }}
-        />
-        <Select
-          allowClear
-          value={roleFilter}
-          onChange={(value) => {
-            setPage(1);
-            setRoleFilter(value);
-          }}
-          placeholder={t("adminUsers.role", "Role")}
-          style={{ width: 180 }}
-          options={[
-            { label: t("roles.candidate", "Candidate"), value: "CANDIDATE" },
-            { label: t("roles.recruiter", "Recruiter"), value: "RECRUITER" },
-            { label: t("roles.admin", "Admin"), value: "ADMIN" },
-          ]}
-        />
-        <Select
-          allowClear
-          value={statusFilter}
-          onChange={(value) => {
-            setPage(1);
-            setStatusFilter(value);
-          }}
-          placeholder={t("adminUsers.status", "Status")}
-          style={{ width: 180 }}
-          options={[
-            { label: t("adminUsers.active", "Active"), value: "ACTIVE" },
-            { label: t("adminUsers.blocked", "Blocked"), value: "BLOCKED" },
-          ]}
-        />
-      </Space>
-
-      <Space wrap>
-        <Text type="secondary">
-          {t("common.selected", "Selected")}: {selectedRowKeys.length}
-        </Text>
-        {selectedRowKeys.length !== 1 ? (
-          <Text type="warning">
-            {t("adminUsers.selectOneUser", "Select one user")}
+    <div className="responsive-page">
+      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+            {t("adminUsers.title", "Admin Users")}
+          </Title>
+          <Text className="responsive-page__subtitle" type="secondary">
+            {t("nav.adminUsers", "Users")}
           </Text>
-        ) : null}
-        <Button
-          disabled={!canChangeSelectedRole}
-          onClick={() => {
-            if (selectedUser?.id === user.id) {
-              message.warning(
-                t(
-                  "adminUsers.cannotChangeOwnAdminRole",
-                  "You cannot change your own admin role",
-                ),
-              );
-              return;
-            }
+        </div>
 
-            setNextRole(selectedUser?.role);
-            setIsRoleModalOpen(true);
-          }}
-        >
-          {t("adminUsers.changeRole", "Change Role")}
-        </Button>
-        <Button
-          disabled={!canChangeSelectedStatus}
-          loading={statusMutation.isPending}
-          onClick={() => {
-            if (!selectedUser) {
-              return;
-            }
-
-            statusMutation.mutate({
-              userId: selectedUser.id,
-              payload: {
-                status: selectedUser.status === "ACTIVE" ? "BLOCKED" : "ACTIVE",
-                version: selectedUser.version,
-              },
-            });
-          }}
-        >
-          {selectedUser?.status === "ACTIVE"
-            ? t("adminUsers.block", "Block")
-            : t("adminUsers.activate", "Activate")}
-        </Button>
-      </Space>
-
-      <Table
-        rowKey="id"
-        loading={isLoading}
-        columns={columns}
-        dataSource={users}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
-        pagination={{
-          current: page,
-          pageSize,
-          total: data?.total || 0,
-          showSizeChanger: false,
-          onChange: (nextPage) => {
-            setPage(nextPage);
-            setSelectedRowKeys([]);
-          },
-        }}
-        locale={{
-          emptyText: <Empty description={t("adminUsers.noUsers", "No users found")} />,
-        }}
-      />
-
-      <Modal
-        title={t("adminUsers.changeRole", "Change Role")}
-        open={isRoleModalOpen}
-        onCancel={() => {
-          setIsRoleModalOpen(false);
-          setNextRole(undefined);
-        }}
-        onOk={() => {
-          if (!selectedUser || !nextRole) {
-            return;
-          }
-
-          roleMutation.mutate({
-            userId: selectedUser.id,
-            payload: {
-              role: nextRole,
-              version: selectedUser.version,
-            },
-          });
-        }}
-        confirmLoading={roleMutation.isPending}
-      >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          {selectedUser?.id === user.id ? (
-            <Alert
-              type="warning"
-              message={t(
-                "adminUsers.cannotChangeOwnAdminRole",
-                "You cannot change your own admin role",
-              )}
-            />
-          ) : null}
+        <Space className="responsive-filter-bar" wrap>
+          <Input.Search
+            className="responsive-filter-control"
+            placeholder={t("adminUsers.search", "Search users")}
+            allowClear
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onSearch={(value) => {
+              setPage(1);
+              setSearchValue(value.trim());
+            }}
+            style={{ width: 260 }}
+          />
           <Select
-            value={nextRole}
-            onChange={setNextRole}
+            className="responsive-filter-control"
+            allowClear
+            value={roleFilter}
+            onChange={(value) => {
+              setPage(1);
+              setRoleFilter(value);
+            }}
+            placeholder={t("adminUsers.role", "Role")}
+            style={{ width: 180 }}
             options={[
               { label: t("roles.candidate", "Candidate"), value: "CANDIDATE" },
               { label: t("roles.recruiter", "Recruiter"), value: "RECRUITER" },
               { label: t("roles.admin", "Admin"), value: "ADMIN" },
             ]}
           />
+          <Select
+            className="responsive-filter-control"
+            allowClear
+            value={statusFilter}
+            onChange={(value) => {
+              setPage(1);
+              setStatusFilter(value);
+            }}
+            placeholder={t("adminUsers.status", "Status")}
+            style={{ width: 180 }}
+            options={[
+              { label: t("adminUsers.active", "Active"), value: "ACTIVE" },
+              { label: t("adminUsers.blocked", "Blocked"), value: "BLOCKED" },
+            ]}
+          />
         </Space>
-      </Modal>
-    </Space>
+
+        <Space className="responsive-toolbar" wrap>
+          <Text type="secondary">
+            {t("common.selected", "Selected")}: {selectedRowKeys.length}
+          </Text>
+          {selectedRowKeys.length !== 1 ? (
+            <Text type="warning">
+              {t("adminUsers.selectOneUser", "Select one user")}
+            </Text>
+          ) : null}
+          <Button
+            disabled={!canChangeSelectedRole}
+            onClick={() => {
+              if (selectedUser?.id === user.id) {
+                message.warning(
+                  t(
+                    "adminUsers.cannotChangeOwnAdminRole",
+                    "You cannot change your own admin role",
+                  ),
+                );
+                return;
+              }
+
+              setNextRole(selectedUser?.role);
+              setIsRoleModalOpen(true);
+            }}
+          >
+            {t("adminUsers.changeRole", "Change Role")}
+          </Button>
+          <Button
+            disabled={!canChangeSelectedStatus}
+            loading={statusMutation.isPending}
+            onClick={() => {
+              if (!selectedUser) {
+                return;
+              }
+
+              statusMutation.mutate({
+                userId: selectedUser.id,
+                payload: {
+                  status: selectedUser.status === "ACTIVE" ? "BLOCKED" : "ACTIVE",
+                  version: selectedUser.version,
+                },
+              });
+            }}
+          >
+            {selectedUser?.status === "ACTIVE"
+              ? t("adminUsers.block", "Block")
+              : t("adminUsers.activate", "Activate")}
+          </Button>
+        </Space>
+
+        <Table
+          className="responsive-table"
+          rowKey="id"
+          loading={isLoading}
+          columns={columns}
+          dataSource={users}
+          scroll={!screens.lg ? { x: 940 } : undefined}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
+          pagination={{
+            current: page,
+            pageSize,
+            total: data?.total || 0,
+            showSizeChanger: false,
+            onChange: (nextPage) => {
+              setPage(nextPage);
+              setSelectedRowKeys([]);
+            },
+          }}
+          locale={{
+            emptyText: <Empty description={t("adminUsers.noUsers", "No users found")} />,
+          }}
+        />
+
+        <Modal
+          className="responsive-modal"
+          title={t("adminUsers.changeRole", "Change Role")}
+          open={isRoleModalOpen}
+          onCancel={() => {
+            setIsRoleModalOpen(false);
+            setNextRole(undefined);
+          }}
+          onOk={() => {
+            if (!selectedUser || !nextRole) {
+              return;
+            }
+
+            roleMutation.mutate({
+              userId: selectedUser.id,
+              payload: {
+                role: nextRole,
+                version: selectedUser.version,
+              },
+            });
+          }}
+          confirmLoading={roleMutation.isPending}
+          width={screens.sm ? 480 : "calc(100vw - 24px)"}
+        >
+          <Space direction="vertical" style={{ width: "100%" }}>
+            {selectedUser?.id === user.id ? (
+              <Alert
+                type="warning"
+                message={t(
+                  "adminUsers.cannotChangeOwnAdminRole",
+                  "You cannot change your own admin role",
+                )}
+              />
+            ) : null}
+            <Select
+              value={nextRole}
+              onChange={setNextRole}
+              options={[
+                { label: t("roles.candidate", "Candidate"), value: "CANDIDATE" },
+                { label: t("roles.recruiter", "Recruiter"), value: "RECRUITER" },
+                { label: t("roles.admin", "Admin"), value: "ADMIN" },
+              ]}
+            />
+          </Space>
+        </Modal>
+      </Space>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   DatePicker,
   Empty,
   Form,
+  Grid,
   Input,
   Modal,
   Select,
@@ -67,6 +68,7 @@ function buildProjectPayload(values, version) {
 
 export function MyProjectsPage({ user }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedProjectIds, setSelectedProjectIds] = useState([]);
@@ -171,7 +173,7 @@ export function MyProjectsPage({ user }) {
         }
 
         return (
-          <Space wrap>
+          <Space wrap className="responsive-tag-list">
             {technologyTags.map((tag) => (
               <Tag key={tag}>{tag}</Tag>
             ))}
@@ -198,24 +200,20 @@ export function MyProjectsPage({ user }) {
   }
 
   return (
-    <div>
-      <Space
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <Title level={2} style={{ margin: 0 }}>
-          {t("projects.title", "My Projects")}
-        </Title>
+    <div className="responsive-page">
+      <div className="responsive-page__header">
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
+            {t("projects.title", "My Projects")}
+          </Title>
+        </div>
 
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
           {t("projects.addProject", "Add Project")}
         </Button>
-      </Space>
+      </div>
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space className="responsive-toolbar" style={{ marginBottom: 16 }} wrap>
         <Text type="secondary">
           {t("common.selected", "Selected")}: {selectedProjectIds.length}
         </Text>
@@ -258,11 +256,13 @@ export function MyProjectsPage({ user }) {
       </Space>
 
       <Table
+        className="responsive-table"
         rowKey="id"
         columns={columns}
         dataSource={projects}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
+        scroll={!screens.lg ? { x: 920 } : undefined}
         rowSelection={{
           selectedRowKeys: selectedProjectIds,
           onChange: setSelectedProjectIds,
@@ -273,7 +273,7 @@ export function MyProjectsPage({ user }) {
       />
 
       {selectedProject ? (
-        <div style={{ marginTop: 24 }}>
+        <div className="responsive-preview-section" style={{ marginTop: 24 }}>
           <Title level={4} style={{ marginBottom: 8 }}>
             {t("projects.preview", "Preview")}
           </Title>
@@ -286,12 +286,15 @@ export function MyProjectsPage({ user }) {
       ) : null}
 
       <Modal
+        className="responsive-modal"
         title={t("projects.addProjectModal", "Add Project")}
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         footer={null}
+        width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
         <Form
+          className="responsive-form"
           form={form}
           layout="vertical"
           onFinish={(values) =>
@@ -340,6 +343,7 @@ export function MyProjectsPage({ user }) {
             <Select
               mode="tags"
               options={technologyTagOptions}
+              style={{ width: "100%" }}
               placeholder={t("projects.tagsPlaceholder", "Add technology tags")}
             />
           </Form.Item>
@@ -355,12 +359,15 @@ export function MyProjectsPage({ user }) {
       </Modal>
 
       <Modal
+        className="responsive-modal"
         title={t("projects.editProjectModal", "Edit Project")}
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         footer={null}
+        width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
         <Form
+          className="responsive-form"
           form={editForm}
           layout="vertical"
           onFinish={(values) => {
@@ -414,6 +421,7 @@ export function MyProjectsPage({ user }) {
             <Select
               mode="tags"
               options={technologyTagOptions}
+              style={{ width: "100%" }}
               placeholder={t("projects.tagsPlaceholder", "Add technology tags")}
             />
           </Form.Item>

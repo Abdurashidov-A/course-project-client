@@ -1,6 +1,7 @@
 import {
   Alert,
   Empty,
+  Grid,
   Input,
   List,
   Modal,
@@ -135,6 +136,7 @@ function renderProjectDescription(item) {
 
 export function GlobalSearch() {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const [query, setQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -190,6 +192,7 @@ export function GlobalSearch() {
   return (
     <>
       <Search
+        className="global-search-input"
         placeholder={t("search.placeholder", "Search positions, CVs, projects...")}
         allowClear
         enterButton={t("search.button", "Search")}
@@ -201,15 +204,16 @@ export function GlobalSearch() {
         }}
         onSearch={handleSearch}
         loading={isLoading}
-        style={{ width: 360 }}
+        style={{ width: "100%", maxWidth: 360 }}
       />
 
       <Modal
+        className="responsive-modal global-search-modal"
         title={t("search.title", "Global Search")}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        width={900}
+        width={screens.lg ? 900 : "calc(100vw - 24px)"}
       >
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <div>
@@ -237,13 +241,15 @@ export function GlobalSearch() {
                     <Title level={5}>{section.title}</Title>
                     {section.items.length > 0 ? (
                       <List
+                        className="search-results-list"
                         bordered
                         dataSource={section.items}
                         renderItem={(item) => (
                           <List.Item>
                             <List.Item.Meta
+                              className="search-results-list__meta"
                               title={
-                                <Space wrap>
+                                <Space wrap className="search-results-list__title">
                                   <Text>{getItemTitle(item)}</Text>
                                   <Tag>{getItemType(item)}</Tag>
                                 </Space>

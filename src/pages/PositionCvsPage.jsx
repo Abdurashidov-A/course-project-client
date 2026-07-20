@@ -1,4 +1,4 @@
-import { Alert, Button, Empty, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Empty, Grid, Space, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getPositionCvs } from "../api/cvApi";
 import { useI18n } from "../i18n/I18nProvider";
@@ -16,6 +16,7 @@ function formatDate(value) {
 
 export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const {
     data,
     isLoading,
@@ -91,45 +92,49 @@ export function PositionCvsPage({ positionId, onBack, onOpenCv }) {
   }
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-      <Button onClick={onBack} style={{ width: "fit-content" }}>
-        {t("positionCvs.back", "Back to Positions")}
-      </Button>
+    <div className="responsive-page">
+      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        <Button onClick={onBack} style={{ width: "fit-content" }}>
+          {t("positionCvs.back", "Back to Positions")}
+        </Button>
 
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {data?.position?.title || t("positionCvs.titleFallback", "Published CVs")}
-        </Title>
-        <MarkdownText
-          className="markdown-text--muted"
-          emptyText={t("common.noShortDescription", "No short description")}
-        >
-          {data?.position?.shortDescription}
-        </MarkdownText>
-      </div>
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+            {data?.position?.title || t("positionCvs.titleFallback", "Published CVs")}
+          </Title>
+          <MarkdownText
+            className="markdown-text--muted responsive-page__subtitle"
+            emptyText={t("common.noShortDescription", "No short description")}
+          >
+            {data?.position?.shortDescription}
+          </MarkdownText>
+        </div>
 
-      {data?.position?.projectTags?.length ? (
-        <Space wrap>
-          {data.position.projectTags.map((tag) => (
-            <Tag key={tag}>{tag}</Tag>
-          ))}
-        </Space>
-      ) : null}
+        {data?.position?.projectTags?.length ? (
+          <Space wrap className="responsive-tag-list">
+            {data.position.projectTags.map((tag) => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
+          </Space>
+        ) : null}
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={data?.cvs || []}
-        loading={isLoading}
-        pagination={{ pageSize: 10 }}
-        onRow={(record) => ({
-          onClick: () => onOpenCv?.(record.id),
-          style: { cursor: "pointer" },
-        })}
-        locale={{
-          emptyText: <Empty description={t("positionCvs.noPublishedCvs", "No published CVs found")} />,
-        }}
-      />
-    </Space>
+        <Table
+          className="responsive-table"
+          rowKey="id"
+          columns={columns}
+          dataSource={data?.cvs || []}
+          loading={isLoading}
+          pagination={{ pageSize: 10 }}
+          scroll={!screens.lg ? { x: 860 } : undefined}
+          onRow={(record) => ({
+            onClick: () => onOpenCv?.(record.id),
+            style: { cursor: "pointer" },
+          })}
+          locale={{
+            emptyText: <Empty description={t("positionCvs.noPublishedCvs", "No published CVs found")} />,
+          }}
+        />
+      </Space>
+    </div>
   );
 }

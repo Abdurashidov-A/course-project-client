@@ -4,6 +4,7 @@ import {
   Card,
   DatePicker,
   Form,
+  Grid,
   Input,
   InputNumber,
   Modal,
@@ -199,6 +200,7 @@ function renderValueInput(attribute, t) {
   if (attribute.type === "SELECT") {
     return (
       <Select
+        style={{ width: "100%" }}
         placeholder={t("profile.value", "Value")}
         options={(attribute.options || []).map((option) => ({
           label: option.value,
@@ -247,6 +249,7 @@ function formatTime(value) {
 
 export function CandidateProfilePage({ user }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
 
   if (!isCandidate(user)) {
     return (
@@ -638,26 +641,28 @@ export function CandidateProfilePage({ user }) {
         : t("profile.saveNow", "Save now");
 
   return (
-    <Card>
+    <Card className="responsive-page-card">
       <Space
+        wrap
+        className="responsive-page__header"
         style={{
           width: "100%",
           justifyContent: "space-between",
           marginBottom: 16,
         }}
       >
-        <div>
-          <Title level={3} style={{ marginBottom: 4 }}>
+        <div className="responsive-page__title-group">
+          <Title level={3} className="responsive-page__title" style={{ marginBottom: 4 }}>
             {t("profile.title", "My Profile Attributes")}
           </Title>
 
-          <Text type="secondary">
+          <Text className="responsive-page__subtitle" type="secondary">
             {t(
               "profile.subtitle",
               "These values are stored once in the candidate profile and will be reused later for automatic CV generation.",
             )}
           </Text>
-          <div style={{ marginTop: 8 }}>
+          <div className="responsive-toolbar" style={{ marginTop: 8 }}>
             <Tag color="blue">
               {t("profile.autoSaveEnabled", "Auto-save enabled")}
             </Tag>
@@ -670,7 +675,7 @@ export function CandidateProfilePage({ user }) {
           </div>
         </div>
 
-        <Space>
+        <Space wrap className="responsive-toolbar__actions">
           <Popconfirm
             title={t(
               "profile.deleteConfirmTitle",
@@ -709,15 +714,18 @@ export function CandidateProfilePage({ user }) {
       ) : null}
 
       <Table
+        className="responsive-table"
         rowKey="id"
         rowSelection={rowSelection}
         columns={columns}
         dataSource={profileAttributes}
         loading={isLoading}
         pagination={false}
+        scroll={!screens.lg ? { x: 900 } : undefined}
       />
 
       <Modal
+        className="responsive-modal"
         title={t("profile.addOrUpdate", "Add / Update Attribute Value")}
         open={isModalOpen}
         onCancel={closeModal}
@@ -726,8 +734,9 @@ export function CandidateProfilePage({ user }) {
         okButtonProps={{ disabled: saveMutation.isPending }}
         confirmLoading={saveMutation.isPending && saveStatus === "saving"}
         destroyOnHidden
+        width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form className="responsive-form" form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             label={t("profile.attribute", "Attribute")}
             name="attributeId"

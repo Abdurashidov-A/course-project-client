@@ -1,5 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, Col, Empty, Row, Space, Statistic, Table, Tag, Typography, Alert } from "antd";
+import {
+  Alert,
+  Card,
+  Col,
+  Empty,
+  Grid,
+  Row,
+  Space,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import { getPublicStats } from "../api/publicApi";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -7,6 +19,7 @@ const { Title, Text } = Typography;
 
 function PublicDashboardSections({ data }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
 
   const popularPositionsColumns = [
     {
@@ -63,10 +76,12 @@ function PublicDashboardSections({ data }) {
         <Col xs={24} xl={16}>
           <Card title={t("dashboard.popularPositions", "Most Popular Positions")}>
             <Table
+              className="responsive-table"
               rowKey="id"
               columns={popularPositionsColumns}
               dataSource={data?.popularPositions || []}
               pagination={false}
+              scroll={!screens.lg ? { x: 720 } : undefined}
               locale={{
                 emptyText: (
                   <Empty description={t("dashboard.noPopularPositions", "No popular positions yet")} />
@@ -78,7 +93,7 @@ function PublicDashboardSections({ data }) {
         <Col xs={24} xl={8}>
           <Card title={t("dashboard.technologyTagCloud", "Technology Tag Cloud")}>
             {(data?.technologyTagCloud || []).length ? (
-              <Space wrap size={[8, 12]}>
+              <Space wrap size={[8, 12]} className="responsive-tag-list">
                 {data.technologyTagCloud.map((item) => (
                   <Tag key={item.tag} style={{ paddingInline: 12, paddingBlock: 6 }}>
                     {item.tag} {item.count}
@@ -113,19 +128,21 @@ export function PublicDashboardPage() {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {t("guest.publicDashboard", "Public Dashboard")}
-        </Title>
-        <Text type="secondary">
-          {t("guest.publicStats", "Public statistics")}
-        </Text>
-      </div>
+    <div className="responsive-page">
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+            {t("guest.publicDashboard", "Public Dashboard")}
+          </Title>
+          <Text className="responsive-page__subtitle" type="secondary">
+            {t("guest.publicStats", "Public statistics")}
+          </Text>
+        </div>
 
-      <div style={{ opacity: isLoading ? 0.7 : 1 }}>
-        <PublicDashboardSections data={data} />
-      </div>
-    </Space>
+        <div style={{ opacity: isLoading ? 0.7 : 1 }}>
+          <PublicDashboardSections data={data} />
+        </div>
+      </Space>
+    </div>
   );
 }

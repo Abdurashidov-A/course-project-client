@@ -24,7 +24,7 @@ export function MarkdownText({ children, className = "", emptyText, compact = fa
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ node, ...props }) => (
+          a: ({ ...props }) => (
             <a {...props} target="_blank" rel="noreferrer noopener" />
           ),
         }}

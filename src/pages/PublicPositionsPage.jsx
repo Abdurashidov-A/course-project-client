@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Empty, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Empty, Grid, Space, Table, Tag, Typography } from "antd";
 import { getPublicPositions } from "../api/publicApi";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 
 export function PublicPositionsPage({ onOpenLogin }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ["public-positions"],
     queryFn: getPublicPositions,
@@ -30,7 +31,7 @@ export function PublicPositionsPage({ onOpenLogin }) {
       key: "projectTags",
       render: (tags) =>
         tags?.length ? (
-          <Space wrap>
+          <Space wrap className="responsive-tag-list">
             {tags.map((tag) => (
               <Tag key={tag}>{tag}</Tag>
             ))}
@@ -58,33 +59,37 @@ export function PublicPositionsPage({ onOpenLogin }) {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {t("guest.publicPositions", "Public Positions")}
-        </Title>
-        <Text type="secondary">
-          {t("guest.loginAsCandidateCreateCv", "Login as candidate to create a CV")}
-        </Text>
-      </div>
+    <div className="responsive-page">
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+            {t("guest.publicPositions", "Public Positions")}
+          </Title>
+          <Text className="responsive-page__subtitle" type="secondary">
+            {t("guest.loginAsCandidateCreateCv", "Login as candidate to create a CV")}
+          </Text>
+        </div>
 
-      <Space>
-        <Tag color="blue">{t("guest.browseAsGuest", "Browse as guest")}</Tag>
-        <Button type="link" onClick={onOpenLogin} style={{ paddingInline: 0 }}>
-          {t("guest.loginCreateCv", "Login to create a CV")}
-        </Button>
+        <Space wrap className="responsive-toolbar">
+          <Tag color="blue">{t("guest.browseAsGuest", "Browse as guest")}</Tag>
+          <Button type="link" onClick={onOpenLogin} style={{ paddingInline: 0 }}>
+            {t("guest.loginCreateCv", "Login to create a CV")}
+          </Button>
+        </Space>
+
+        <Table
+          className="responsive-table"
+          rowKey="id"
+          columns={columns}
+          dataSource={data}
+          loading={isLoading}
+          pagination={{ pageSize: 10 }}
+          scroll={!screens.lg ? { x: 760 } : undefined}
+          locale={{
+            emptyText: <Empty description={t("dashboard.noPositions", "No positions yet")} />,
+          }}
+        />
       </Space>
-
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={data}
-        loading={isLoading}
-        pagination={{ pageSize: 10 }}
-        locale={{
-          emptyText: <Empty description={t("dashboard.noPositions", "No positions yet")} />,
-        }}
-      />
-    </Space>
+    </div>
   );
 }

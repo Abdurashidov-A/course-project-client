@@ -3,6 +3,7 @@ import {
   Checkbox,
   DatePicker,
   Form,
+  Grid,
   Input,
   InputNumber,
   message,
@@ -134,7 +135,7 @@ function syncRequiredAttributeIds(form, attributeIds) {
   }
 }
 
-function AccessRulesEditor({ form, attributes, fieldName, t }) {
+function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
   const isPublic = Form.useWatch("isPublic", form);
   const accessRules = Form.useWatch(fieldName, form) || [];
   const supportedAttributes = useMemo(
@@ -177,6 +178,7 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
 
               return (
                 <Space
+                  className="positions-access-rules__row"
                   key={field.key}
                   align="start"
                   wrap
@@ -187,7 +189,7 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
                     label={t("positions.ruleAttribute", "Rule Attribute")}
                     name={[field.name, "attributeId"]}
                     rules={[{ required: true }]}
-                    style={{ minWidth: 220, flex: 1 }}
+                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 220, flex: 1 }}
                   >
                     <Select
                       placeholder={t("positions.selectRuleAttribute", "Select attribute")}
@@ -210,7 +212,7 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
                     label={t("positions.operator", "Operator")}
                     name={[field.name, "operator"]}
                     rules={[{ required: true }]}
-                    style={{ minWidth: 180 }}
+                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 180 }}
                   >
                     <Select
                       placeholder={t("positions.selectRuleOperator", "Select operator")}
@@ -229,7 +231,7 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
                           ? "dateValue"
                           : "stringValue"]}
                     rules={[{ required: true }]}
-                    style={{ minWidth: 220, flex: 1 }}
+                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 220, flex: 1 }}
                   >
                     {selectedAttribute?.type === "NUMERIC" ? (
                       <InputNumber
@@ -274,7 +276,12 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
                     )}
                   </Form.Item>
 
-                  <Button danger style={{ marginTop: 30 }} onClick={() => remove(field.name)}>
+                  <Button
+                    danger
+                    className="positions-access-rules__remove"
+                    style={{ marginTop: isCompact ? 0 : 30 }}
+                    onClick={() => remove(field.name)}
+                  >
                     {t("positions.removeRule", "Remove Rule")}
                   </Button>
                 </Space>
@@ -299,6 +306,7 @@ function AccessRulesEditor({ form, attributes, fieldName, t }) {
 
 export function PositionsPage({ user, onViewPublishedCvs }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
@@ -502,7 +510,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         }
 
         return (
-          <Space wrap>
+          <Space wrap className="responsive-tag-list">
             {projectTags.map((tag) => (
               <Tag key={tag}>{tag}</Tag>
             ))}
@@ -524,7 +532,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         }
 
         return (
-          <Space wrap>
+          <Space wrap className="responsive-tag-list">
             {positionAttributes.map((item) => (
               <Tag key={item.id}>
                 {item.attribute.name}
@@ -591,19 +599,15 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   }
 
   return (
-    <div>
-      <Space
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <Title level={2} style={{ margin: 0 }}>
-          {t("positions.title", "Positions")}
-        </Title>
+    <div className="responsive-page">
+      <div className="responsive-page__header responsive-page__header--stack">
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
+            {t("positions.title", "Positions")}
+          </Title>
+        </div>
 
-        <Space style={{ marginBottom: 16 }} wrap>
+        <Space className="responsive-toolbar" wrap style={{ marginBottom: 0 }}>
           <Text type="secondary">
             {t("common.selected", "Selected")}: {selectedPositionIds.length}
           </Text>
@@ -703,14 +707,16 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             {t("positions.createPosition", "Create Position")}
           </Button>
         ) : null}
-      </Space>
+      </div>
 
       <Table
+        className="responsive-table"
         rowKey="id"
         loading={isLoading}
         columns={columns}
         dataSource={data}
         pagination={{ pageSize: 10 }}
+        scroll={!screens.lg ? { x: 1400 } : undefined}
         rowSelection={{
           selectedRowKeys: selectedPositionIds,
           onChange: setSelectedPositionIds,
@@ -726,13 +732,15 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
       {showManagePositions ? (
         <Modal
+          className="responsive-modal"
           title={t("positions.createPosition", "Create Position")}
           open={isCreateModalOpen}
           onCancel={() => setIsCreateModalOpen(false)}
           footer={null}
-          width={900}
+          width={screens.lg ? 900 : "calc(100vw - 24px)"}
         >
           <Form
+            className="responsive-form"
             form={form}
             layout="vertical"
             initialValues={{
@@ -792,6 +800,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 fieldName="accessRules"
                 attributes={attributes}
                 t={t}
+                isCompact={!screens.md}
               />
             </Form.Item>
             <Form.Item
@@ -865,13 +874,15 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
       {showManagePositions ? (
         <Modal
+          className="responsive-modal"
           title={t("positions.editPosition", "Edit Position")}
           open={isEditModalOpen}
           onCancel={() => setIsEditModalOpen(false)}
           footer={null}
-          width={900}
+          width={screens.lg ? 900 : "calc(100vw - 24px)"}
         >
           <Form
+            className="responsive-form"
             form={editForm}
             layout="vertical"
             onFinish={(values) => {
@@ -936,6 +947,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
                 fieldName="accessRules"
                 attributes={attributes}
                 t={t}
+                isCompact={!screens.md}
               />
             </Form.Item>
             <Form.Item

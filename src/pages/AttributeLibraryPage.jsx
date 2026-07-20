@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Form,
+  Grid,
   Input,
   Modal,
   Select,
@@ -48,6 +49,7 @@ const typeValues = [
 
 export function AttributeLibraryPage({ user }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState([]);
@@ -157,7 +159,7 @@ export function AttributeLibraryPage({ user }) {
         }
 
         return (
-          <Space wrap>
+          <Space wrap className="responsive-tag-list">
             {options.map((option) => (
               <Tag key={option.id}>{option.value}</Tag>
             ))}
@@ -172,25 +174,22 @@ export function AttributeLibraryPage({ user }) {
   }
 
   return (
-    <div>
-      <Space
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <Title level={2} style={{ margin: 0 }}>
-          {t("attributeLibrary.title", "Attribute Library")}
-        </Title>
+    <div className="responsive-page">
+      <div className="responsive-page__header">
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
+            {t("attributeLibrary.title", "Attribute Library")}
+          </Title>
+        </div>
 
         <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
           {t("attributeLibrary.createAttribute", "Create Attribute")}
         </Button>
-      </Space>
+      </div>
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space className="responsive-filter-bar" style={{ marginBottom: 16 }} wrap>
         <Input.Search
+          className="responsive-filter-control"
           placeholder={t("attributeLibrary.searchPlaceholder", "Search attributes by name")}
           allowClear
           value={search}
@@ -199,6 +198,7 @@ export function AttributeLibraryPage({ user }) {
         />
 
         <Select
+          className="responsive-filter-control"
           placeholder={t("attributeLibrary.filterCategory", "Filter by category")}
           allowClear
           value={categoryFilter}
@@ -208,7 +208,7 @@ export function AttributeLibraryPage({ user }) {
         />
       </Space>
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space className="responsive-toolbar" style={{ marginBottom: 16 }} wrap>
         <Text type="secondary">
           {t("common.selected", "Selected")}: {selectedAttributeIds.length}
         </Text>
@@ -258,11 +258,13 @@ export function AttributeLibraryPage({ user }) {
       </Space>
 
       <Table
+        className="responsive-table"
         rowKey="id"
         loading={isLoading}
         columns={columns}
         dataSource={data}
         pagination={{ pageSize: 10 }}
+        scroll={!screens.lg ? { x: 1040 } : undefined}
         rowSelection={{
           selectedRowKeys: selectedAttributeIds,
           onChange: setSelectedAttributeIds,
@@ -270,12 +272,15 @@ export function AttributeLibraryPage({ user }) {
       />
 
       <Modal
+        className="responsive-modal"
         title={t("attributeLibrary.createAttribute", "Create Attribute")}
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         footer={null}
+        width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
         <Form
+          className="responsive-form"
           form={form}
           layout="vertical"
           onFinish={(values) => createAttributeMutation.mutate(values)}
@@ -312,6 +317,8 @@ export function AttributeLibraryPage({ user }) {
 
                   {fields.map((field) => (
                     <Space
+                      wrap
+                      className="responsive-inline-field"
                       key={field.key}
                       style={{ display: "flex", marginTop: 8 }}
                       align="baseline"
@@ -357,16 +364,19 @@ export function AttributeLibraryPage({ user }) {
           >
             {t("attributeLibrary.saveAttribute", "Save Attribute")}
           </Button>
-        </Form>{" "}
+        </Form>
       </Modal>
 
       <Modal
+        className="responsive-modal"
         title={t("attributeLibrary.editAttribute", "Edit Attribute")}
         open={isEditModalOpen}
         onCancel={() => setIsEditModalOpen(false)}
         footer={null}
+        width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
         <Form
+          className="responsive-form"
           form={editForm}
           layout="vertical"
           onFinish={(values) => {
@@ -410,6 +420,8 @@ export function AttributeLibraryPage({ user }) {
 
                   {fields.map((field) => (
                     <Space
+                      wrap
+                      className="responsive-inline-field"
                       key={field.key}
                       style={{ display: "flex", marginTop: 8 }}
                       align="baseline"

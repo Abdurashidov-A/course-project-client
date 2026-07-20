@@ -4,6 +4,7 @@ import {
   DatePicker,
   Empty,
   Form,
+  Grid,
   Input,
   InputNumber,
   message,
@@ -193,6 +194,7 @@ function renderValueInput(attribute, t) {
   if (attribute.type === "SELECT" && attribute.options?.length > 0) {
     return (
       <Select
+        style={{ width: "100%" }}
         placeholder={t("profile.value", "Value")}
         options={attribute.options.map((option) => ({
           label: option.value,
@@ -207,6 +209,7 @@ function renderValueInput(attribute, t) {
 
 export function CvPreviewPage({ cvId, onBack }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [missingPublishAttributes, setMissingPublishAttributes] = useState([]);
@@ -472,159 +475,167 @@ export function CvPreviewPage({ cvId, onBack }) {
   }
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-      <Button onClick={onBack} style={{ width: "fit-content" }}>
-        {t("cvPreview.backToMyCvs", "Back to My CVs")}
-      </Button>
+    <div className="responsive-page">
+      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        <Button onClick={onBack} style={{ width: "fit-content" }}>
+          {t("cvPreview.backToMyCvs", "Back to My CVs")}
+        </Button>
 
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {data?.position?.title || t("cvPreview.titleFallback", "CV Preview")}
-        </Title>
-        <MarkdownText
-          className="markdown-text--muted"
-          emptyText={t("common.noShortDescription", "No short description")}
-        >
-          {data?.position?.shortDescription}
-        </MarkdownText>
-      </div>
-
-      <Space wrap>
-        <Tag color="blue">
-          {t("cvPreview.status", "Status")}: {t(`status.${data?.status}`, data?.status || "—")}
-        </Tag>
-        <Tag>
-          {t("common.version", "Version")}: {data?.version ?? t("common.none", "—")}
-        </Tag>
-        <Tag color="purple">
-          {t("cvPreview.likes", "Likes")}: {data?.likesCount ?? 0}
-        </Tag>
-        {canEditValues ? (
-          <Button
-            type="primary"
-            disabled={data?.status === "PUBLISHED"}
-            loading={publishMutation.isPending}
-            onClick={handlePublish}
+        <div className="responsive-page__title-group">
+          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+            {data?.position?.title || t("cvPreview.titleFallback", "CV Preview")}
+          </Title>
+          <MarkdownText
+            className="markdown-text--muted responsive-page__subtitle"
+            emptyText={t("common.noShortDescription", "No short description")}
           >
-            {data?.status === "PUBLISHED"
-              ? t("status.PUBLISHED", "Published")
-              : t("cvPreview.publish", "Publish")}
-          </Button>
-        ) : (
-          <Tag color="default">{t("common.readOnly", "Read-only view")}</Tag>
-        )}
-        {canLike ? (
-          <Button loading={likeMutation.isPending} onClick={handleLikeToggle}>
-            {data?.likedByCurrentUser
-              ? t("cvPreview.unlike", "Unlike")
-              : t("cvPreview.like", "Like")}
-          </Button>
-        ) : null}
-      </Space>
+            {data?.position?.shortDescription}
+          </MarkdownText>
+        </div>
 
-      {missingPublishAttributes.length > 0 ? (
-        <Alert
-          type="warning"
-          message={t(
-            "cvPreview.publishBlocked",
-            "Cannot publish CV while some attributes are missing",
+        <Space wrap className="responsive-toolbar">
+          <Tag color="blue">
+            {t("cvPreview.status", "Status")}: {t(`status.${data?.status}`, data?.status || "—")}
+          </Tag>
+          <Tag>
+            {t("common.version", "Version")}: {data?.version ?? t("common.none", "—")}
+          </Tag>
+          <Tag color="purple">
+            {t("cvPreview.likes", "Likes")}: {data?.likesCount ?? 0}
+          </Tag>
+          {canEditValues ? (
+            <Button
+              type="primary"
+              disabled={data?.status === "PUBLISHED"}
+              loading={publishMutation.isPending}
+              onClick={handlePublish}
+            >
+              {data?.status === "PUBLISHED"
+                ? t("status.PUBLISHED", "Published")
+                : t("cvPreview.publish", "Publish")}
+            </Button>
+          ) : (
+            <Tag color="default">{t("common.readOnly", "Read-only view")}</Tag>
           )}
-          description={missingPublishAttributes
-            .map((attribute) => attribute.name)
-            .join(", ")}
-          showIcon
-        />
-      ) : null}
-
-      {canEditValues ? (
-        <Space wrap>
-          <Text type="secondary">
-            {t("common.selected", "Selected")}: {selectedRowKeys.length}
-          </Text>
-          {selectedRowKeys.length > 1 ? (
-            <Text type="warning">
-              {t("cvPreview.selectedOne", "Select only one attribute to edit")}
-            </Text>
+          {canLike ? (
+            <Button loading={likeMutation.isPending} onClick={handleLikeToggle}>
+              {data?.likedByCurrentUser
+                ? t("cvPreview.unlike", "Unlike")
+                : t("cvPreview.like", "Like")}
+            </Button>
           ) : null}
-          <Button
-            disabled={selectedRowKeys.length !== 1}
-            onClick={handleEditValue}
-          >
-            {t("cvPreview.editValue", "Edit Value")}
-          </Button>
         </Space>
-      ) : null}
 
-      <Table
-        rowKey="positionAttributeId"
-        loading={isLoading}
-        columns={columns}
-        dataSource={data?.attributes || []}
-        pagination={{ pageSize: 10 }}
-        rowSelection={
-          canEditValues
-            ? {
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-              }
-            : undefined
-        }
-        locale={{
-          emptyText: <Empty description={t("cvPreview.noAttributes", "No attributes found")} />,
-        }}
-      />
+        {missingPublishAttributes.length > 0 ? (
+          <Alert
+            type="warning"
+            message={t(
+              "cvPreview.publishBlocked",
+              "Cannot publish CV while some attributes are missing",
+            )}
+            description={missingPublishAttributes
+              .map((attribute) => attribute.name)
+              .join(", ")}
+            showIcon
+          />
+        ) : null}
 
-      <div>
-        <Title level={3} style={{ marginBottom: 12 }}>
-          {t("cvPreview.projects", "Projects")}
-        </Title>
-
-        {data?.position?.projectTags?.length ? (
-          <Space wrap style={{ marginBottom: 12 }}>
-            {data.position.projectTags.map((tag) => (
-              <Tag key={tag}>{tag}</Tag>
-            ))}
+        {canEditValues ? (
+          <Space wrap className="responsive-toolbar">
+            <Text type="secondary">
+              {t("common.selected", "Selected")}: {selectedRowKeys.length}
+            </Text>
+            {selectedRowKeys.length > 1 ? (
+              <Text type="warning">
+                {t("cvPreview.selectedOne", "Select only one attribute to edit")}
+              </Text>
+            ) : null}
+            <Button
+              disabled={selectedRowKeys.length !== 1}
+              onClick={handleEditValue}
+            >
+              {t("cvPreview.editValue", "Edit Value")}
+            </Button>
           </Space>
         ) : null}
 
         <Table
-          rowKey="id"
-          columns={projectColumns}
-          dataSource={data?.projects || []}
+          className="responsive-table"
+          rowKey="positionAttributeId"
+          loading={isLoading}
+          columns={columns}
+          dataSource={data?.attributes || []}
           pagination={{ pageSize: 10 }}
+          scroll={!screens.lg ? { x: 1100 } : undefined}
+          rowSelection={
+            canEditValues
+              ? {
+                  selectedRowKeys,
+                  onChange: setSelectedRowKeys,
+                }
+              : undefined
+          }
           locale={{
-            emptyText: <Empty description={t("cvPreview.noProjects", "No projects added yet.")} />,
+            emptyText: <Empty description={t("cvPreview.noAttributes", "No attributes found")} />,
           }}
         />
-      </div>
 
-      {canEditValues ? (
-        <Modal
-          title={selectedAttribute ? `${t("common.edit", "Edit")} ${selectedAttribute.name}` : t("cvPreview.editModalTitle", "Edit Value")}
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
-          onOk={() => form.submit()}
-          confirmLoading={saveMutation.isPending}
-          destroyOnHidden
-        >
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Form.Item label={t("profile.attribute", "Attribute")}>
-              <Input value={selectedAttribute?.name} disabled />
-            </Form.Item>
+        <div className="responsive-preview-section">
+          <Title level={3} style={{ marginBottom: 12 }}>
+            {t("cvPreview.projects", "Projects")}
+          </Title>
 
-            <Form.Item
-              key={selectedAttribute?.type || "empty"}
-              label={t("cvPreview.value", "Value")}
-              name="value"
-              valuePropName={
-                selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
-              }
-            >
-              {renderValueInput(selectedAttribute, t)}
-            </Form.Item>
-          </Form>
-        </Modal>
-      ) : null}
-    </Space>
+          {data?.position?.projectTags?.length ? (
+            <Space wrap className="responsive-tag-list" style={{ marginBottom: 12 }}>
+              {data.position.projectTags.map((tag) => (
+                <Tag key={tag}>{tag}</Tag>
+              ))}
+            </Space>
+          ) : null}
+
+          <Table
+            className="responsive-table"
+            rowKey="id"
+            columns={projectColumns}
+            dataSource={data?.projects || []}
+            pagination={{ pageSize: 10 }}
+            scroll={!screens.lg ? { x: 960 } : undefined}
+            locale={{
+              emptyText: <Empty description={t("cvPreview.noProjects", "No projects added yet.")} />,
+            }}
+          />
+        </div>
+
+        {canEditValues ? (
+          <Modal
+            className="responsive-modal"
+            title={selectedAttribute ? `${t("common.edit", "Edit")} ${selectedAttribute.name}` : t("cvPreview.editModalTitle", "Edit Value")}
+            open={isModalOpen}
+            onCancel={() => setIsModalOpen(false)}
+            onOk={() => form.submit()}
+            confirmLoading={saveMutation.isPending}
+            destroyOnHidden
+            width={screens.md ? 720 : "calc(100vw - 24px)"}
+          >
+            <Form className="responsive-form" form={form} layout="vertical" onFinish={handleSubmit}>
+              <Form.Item label={t("profile.attribute", "Attribute")}>
+                <Input value={selectedAttribute?.name} disabled />
+              </Form.Item>
+
+              <Form.Item
+                key={selectedAttribute?.type || "empty"}
+                label={t("cvPreview.value", "Value")}
+                name="value"
+                valuePropName={
+                  selectedAttribute?.type === "BOOLEAN" ? "checked" : "value"
+                }
+              >
+                {renderValueInput(selectedAttribute, t)}
+              </Form.Item>
+            </Form>
+          </Modal>
+        ) : null}
+      </Space>
+    </div>
   );
 }
