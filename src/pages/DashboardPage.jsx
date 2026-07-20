@@ -283,7 +283,9 @@ function CandidateDashboard({ data }) {
         technologyTags?.length ? (
           <Space wrap>
             {technologyTags.map((tag) => (
-              <Tag key={tag}>{tag}</Tag>
+              <Tag key={tag} className="dashboard-table__info-tag">
+                {tag}
+              </Tag>
             ))}
           </Space>
         ) : (
@@ -608,6 +610,7 @@ export function DashboardPage() {
     return (
       <div className="dashboard-page">
         <Alert
+          className="dashboard-error-alert"
           type="error"
           message={t("dashboard.loadError", "Failed to load dashboard statistics")}
           description={error?.response?.data?.message}
@@ -629,7 +632,7 @@ export function DashboardPage() {
           <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
           {[1, 2, 3].map((item) => (
             <Col xs={24} sm={12} lg={8} key={item}>
-              <Card loading />
+              <Card className="dashboard-loading-card" loading />
             </Col>
           ))}
           </Row>
