@@ -541,12 +541,12 @@ export function CvPreviewPage({ cvId, onBack }) {
         ) : null}
 
         {canEditValues ? (
-          <Space wrap className="responsive-toolbar">
-            <Text type="secondary">
+          <div className="responsive-toolbar responsive-toolbar--actions">
+            <Text className="responsive-toolbar__meta" type="secondary">
               {t("common.selected", "Selected")}: {selectedRowKeys.length}
             </Text>
             {selectedRowKeys.length > 1 ? (
-              <Text type="warning">
+              <Text className="responsive-toolbar__note" type="warning">
                 {t("cvPreview.selectedOne", "Select only one attribute to edit")}
               </Text>
             ) : null}
@@ -556,7 +556,7 @@ export function CvPreviewPage({ cvId, onBack }) {
             >
               {t("cvPreview.editValue", "Edit Value")}
             </Button>
-          </Space>
+          </div>
         ) : null}
 
         <Table

@@ -295,6 +295,16 @@ select {
   min-width: 0;
 }
 
+.responsive-toolbar--actions {
+  align-items: flex-start;
+}
+
+.responsive-toolbar__meta,
+.responsive-toolbar__note {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
 .responsive-filter-control {
   max-width: 100%;
 }
@@ -1111,6 +1121,16 @@ select {
     width: 100% !important;
   }
 
+  .responsive-toolbar--actions {
+    gap: 10px;
+  }
+
+  .responsive-toolbar--actions > .ant-btn {
+    flex: 1 1 140px;
+    min-height: 40px;
+    min-width: 0;
+  }
+
   .responsive-inline-field.ant-space,
   .positions-access-rules__row.ant-space,
   .position-discussion-modal__footer.ant-space {
@@ -1254,5 +1274,33 @@ select {
 
   .app-header__control-group {
     gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-filter-bar.ant-space {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .responsive-filter-bar .ant-space-item {
+    width: 100%;
+  }
+
+  .responsive-filter-bar .ant-input-search,
+  .responsive-filter-bar .ant-select,
+  .responsive-filter-bar .responsive-filter-control {
+    width: 100% !important;
+  }
+
+  .responsive-toolbar--actions {
+    gap: 10px;
+  }
+
+  .responsive-toolbar--actions > .ant-btn {
+    flex-basis: 100%;
+    width: 100%;
   }
 }

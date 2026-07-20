@@ -213,8 +213,8 @@ export function MyProjectsPage({ user }) {
         </Button>
       </div>
 
-      <Space className="responsive-toolbar" style={{ marginBottom: 16 }} wrap>
-        <Text type="secondary">
+      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
+        <Text className="responsive-toolbar__meta" type="secondary">
           {t("common.selected", "Selected")}: {selectedProjectIds.length}
         </Text>
 
@@ -253,7 +253,7 @@ export function MyProjectsPage({ user }) {
         >
           {t("projects.deleteSelected", "Delete Selected")}
         </Button>
-      </Space>
+      </div>
 
       <Table
         className="responsive-table"

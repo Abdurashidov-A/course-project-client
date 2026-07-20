@@ -126,8 +126,8 @@ export function MyCvsPage({ user, onOpenCv }) {
         </div>
       </div>
 
-      <Space wrap className="responsive-toolbar" style={{ marginBottom: 16 }}>
-        <Text type="secondary">
+      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
+        <Text className="responsive-toolbar__meta" type="secondary">
           {t("common.selected", "Selected")}: {selectedRowKeys.length}
         </Text>
 
@@ -151,7 +151,7 @@ export function MyCvsPage({ user, onOpenCv }) {
         >
           {t("myCvs.deleteSelected", "Delete Selected")}
         </Button>
-      </Space>
+      </div>
 
       <Table
         className="responsive-table"

@@ -607,13 +607,13 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
           </Title>
         </div>
 
-        <Space className="responsive-toolbar" wrap style={{ marginBottom: 0 }}>
-          <Text type="secondary">
+        <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 0 }}>
+          <Text className="responsive-toolbar__meta" type="secondary">
             {t("common.selected", "Selected")}: {selectedPositionIds.length}
           </Text>
 
           {selectedPositionIds.length > 1 ? (
-            <Text type="warning">
+            <Text className="responsive-toolbar__note" type="warning">
               {t("positions.selectOneAction", "Select only one position for toolbar actions")}
             </Text>
           ) : null}
@@ -700,7 +700,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               {t("positions.deleteSelected", "Delete Selected")}
             </Button>
           ) : null}
-        </Space>
+        </div>
 
         {showManagePositions ? (
           <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>

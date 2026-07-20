@@ -208,8 +208,8 @@ export function AttributeLibraryPage({ user }) {
         />
       </Space>
 
-      <Space className="responsive-toolbar" style={{ marginBottom: 16 }} wrap>
-        <Text type="secondary">
+      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
+        <Text className="responsive-toolbar__meta" type="secondary">
           {t("common.selected", "Selected")}: {selectedAttributeIds.length}
         </Text>
 
@@ -255,7 +255,7 @@ export function AttributeLibraryPage({ user }) {
         >
           {t("attributeLibrary.deleteSelected", "Delete Selected")}
         </Button>
-      </Space>
+      </div>
 
       <Table
         className="responsive-table"

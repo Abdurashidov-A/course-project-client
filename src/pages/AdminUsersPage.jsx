@@ -243,12 +243,12 @@ export function AdminUsersPage({ user }) {
           />
         </Space>
 
-        <Space className="responsive-toolbar" wrap>
-          <Text type="secondary">
+        <div className="responsive-toolbar responsive-toolbar--actions">
+          <Text className="responsive-toolbar__meta" type="secondary">
             {t("common.selected", "Selected")}: {selectedRowKeys.length}
           </Text>
           {selectedRowKeys.length !== 1 ? (
-            <Text type="warning">
+            <Text className="responsive-toolbar__note" type="warning">
               {t("adminUsers.selectOneUser", "Select one user")}
             </Text>
           ) : null}
@@ -292,7 +292,7 @@ export function AdminUsersPage({ user }) {
               ? t("adminUsers.block", "Block")
               : t("adminUsers.activate", "Activate")}
           </Button>
-        </Space>
+        </div>
 
         <Table
           className="responsive-table"
