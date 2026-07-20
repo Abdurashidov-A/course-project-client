@@ -4,6 +4,7 @@ import {
   Card,
   Col,
   Empty,
+  Grid,
   Row,
   Space,
   Table,
@@ -92,6 +93,8 @@ function TechnologyTagChip({ name, count, highlighted }) {
 
 function PopularPositionsSection({ data }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const tableScroll = screens.md ? undefined : { x: "max-content" };
   const popularPositionsColumns = [
     {
       title: t("dashboard.position", "Position"),
@@ -112,13 +115,13 @@ function PopularPositionsSection({ data }) {
       title: t("dashboard.submittedCvs", "Submitted CVs"),
       dataIndex: "submittedCvsCount",
       key: "submittedCvsCount",
-      width: 160,
+      width: 128,
     },
     {
       title: t("dashboard.publishedCvs", "Published CVs"),
       dataIndex: "publishedCvsCount",
       key: "publishedCvsCount",
-      width: 160,
+      width: 128,
     },
   ];
 
@@ -139,7 +142,7 @@ function PopularPositionsSection({ data }) {
         dataSource={data?.popularPositions || []}
         pagination={false}
         size="middle"
-        scroll={{ x: "max-content" }}
+        scroll={tableScroll}
         locale={{
           emptyText: (
             <Empty description={t("dashboard.noPopularPositions", "No popular positions yet")} />
@@ -188,6 +191,8 @@ function TechnologyTagCloudSection({ data }) {
 
 function CandidateDashboard({ data }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const tableScroll = screens.md ? undefined : { x: "max-content" };
   const stats = data?.stats || {};
   const statCards = [
     {
@@ -264,7 +269,7 @@ function CandidateDashboard({ data }) {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
-      width: 100,
+      width: 88,
     },
   ];
 
@@ -281,7 +286,7 @@ function CandidateDashboard({ data }) {
       key: "technologyTags",
       render: (technologyTags) =>
         technologyTags?.length ? (
-          <Space wrap>
+          <Space wrap className="dashboard-table__tag-list">
             {technologyTags.map((tag) => (
               <Tag key={tag} className="dashboard-table__info-tag">
                 {tag}
@@ -302,7 +307,7 @@ function CandidateDashboard({ data }) {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
-      width: 100,
+      width: 88,
     },
   ];
 
@@ -349,7 +354,7 @@ function CandidateDashboard({ data }) {
                 dataSource={data?.recentCvs || []}
                 pagination={false}
                 size="middle"
-                scroll={{ x: "max-content" }}
+                scroll={tableScroll}
                 locale={{
                   emptyText: <Empty description={t("dashboard.noCvs", "No CVs yet")} />,
                 }}
@@ -373,7 +378,7 @@ function CandidateDashboard({ data }) {
                 dataSource={data?.recentProjects || []}
                 pagination={false}
                 size="middle"
-                scroll={{ x: "max-content" }}
+                scroll={tableScroll}
                 locale={{
                   emptyText: <Empty description={t("dashboard.noProjects", "No projects yet")} />,
                 }}
@@ -399,6 +404,8 @@ function CandidateDashboard({ data }) {
 
 function RecruiterDashboard({ data }) {
   const { t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const tableScroll = screens.md ? undefined : { x: "max-content" };
   const stats = data?.stats || {};
   const statCards = [
     {
@@ -500,7 +507,7 @@ function RecruiterDashboard({ data }) {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
-      width: 100,
+      width: 88,
     },
   ];
 
@@ -547,7 +554,7 @@ function RecruiterDashboard({ data }) {
                 dataSource={data?.recentPublishedCvs || []}
                 pagination={false}
                 size="middle"
-                scroll={{ x: "max-content" }}
+                scroll={tableScroll}
                 locale={{
                   emptyText: (
                     <Empty description={t("dashboard.noPublishedCvs", "No published CVs yet")} />
@@ -573,7 +580,7 @@ function RecruiterDashboard({ data }) {
                 dataSource={data?.recentPositions || []}
                 pagination={false}
                 size="middle"
-                scroll={{ x: "max-content" }}
+                scroll={tableScroll}
                 locale={{
                   emptyText: (
                     <Empty description={t("dashboard.noPositions", "No positions yet")} />

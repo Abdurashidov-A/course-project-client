@@ -207,6 +207,12 @@ select {
 
 .dashboard-page__grid--sections > .ant-col {
   display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.dashboard-page__grid--sections > .ant-col > .dashboard-section-card {
+  min-width: 0;
 }
 
 .dashboard-stat-card.ant-card {
@@ -462,6 +468,7 @@ select {
   border-bottom: 1px solid var(--dashboard-table-divider);
   vertical-align: top;
   background: transparent;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-table .ant-table-tbody > tr:last-child > td {
@@ -499,6 +506,14 @@ select {
   border-color: var(--dashboard-info-tag-border);
   background: var(--dashboard-info-tag-bg);
   color: var(--dashboard-info-tag-text);
+}
+
+.dashboard-table__tag-list.ant-space {
+  max-width: 100%;
+}
+
+.dashboard-table__tag-list .ant-space-item {
+  max-width: 100%;
 }
 
 .dashboard-error-alert.ant-alert {
