@@ -79,6 +79,17 @@ function DashboardSectionTitle({ icon, title }) {
   );
 }
 
+function TechnologyTagChip({ name, count, highlighted }) {
+  return (
+    <div
+      className={`dashboard-tag-chip${highlighted ? " dashboard-tag-chip--highlighted" : ""}`}
+    >
+      <span className="dashboard-tag-chip__name">{name}</span>
+      <span className="dashboard-tag-chip__count">{count}</span>
+    </div>
+  );
+}
+
 function PopularPositionsSection({ data }) {
   const { t } = useI18n();
   const popularPositionsColumns = [
@@ -142,6 +153,10 @@ function PopularPositionsSection({ data }) {
 function TechnologyTagCloudSection({ data }) {
   const { t } = useI18n();
   const technologyTags = data?.technologyTagCloud || [];
+  const maxCount = technologyTags.reduce(
+    (currentMax, item) => Math.max(currentMax, Number(item.count) || 0),
+    0,
+  );
 
   return (
     <Card
@@ -154,13 +169,16 @@ function TechnologyTagCloudSection({ data }) {
       }
     >
       {technologyTags.length > 0 ? (
-        <Space wrap size={[8, 12]}>
+        <div className="dashboard-tag-cloud">
           {technologyTags.map((item) => (
-            <Tag key={item.tag} style={{ paddingInline: 12, paddingBlock: 6 }}>
-              {item.tag} {item.count}
-            </Tag>
+            <TechnologyTagChip
+              key={item.tag}
+              name={item.tag}
+              count={item.count}
+              highlighted={maxCount > 0 && (Number(item.count) || 0) === maxCount}
+            />
           ))}
-        </Space>
+        </div>
       ) : (
         <Empty description={t("dashboard.noTechnologyTags", "No technology tags yet")} />
       )}
