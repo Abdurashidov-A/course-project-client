@@ -145,15 +145,21 @@ export default function App() {
         : effectiveSelectedPageKey;
   const selectedPage =
     menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
+  const themeTokens = {
+    colorPrimary: isDarkMode ? "#818cf8" : "#4f46e5",
+    borderRadius: 12,
+    colorBgLayout: isDarkMode ? "#0f172a" : "#f6f7fb",
+    colorBgContainer: isDarkMode ? "#111827" : "#ffffff",
+    colorText: isDarkMode ? "#f8fafc" : "#172033",
+    colorTextSecondary: isDarkMode ? "#94a3b8" : "#667085",
+    colorBorderSecondary: isDarkMode ? "#293449" : "#e6e8ef",
+  };
 
   return (
     <ConfigProvider
       theme={{
         algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: "#7c3aed",
-          borderRadius: 10,
-        },
+        token: themeTokens,
       }}
     >
       <div className={`app-shell app-theme-${themeMode}`}>

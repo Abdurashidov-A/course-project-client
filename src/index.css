@@ -35,23 +35,23 @@ select {
 }
 
 .app-theme-light {
-  --app-bg: #f5f7fb;
+  --app-bg: #f6f7fb;
   --app-surface: #ffffff;
-  --app-header-bg: #1677ff;
-  --app-header-text: #ffffff;
-  --app-text: #111827;
-  --app-text-secondary: #6b7280;
-  --app-border: #e5e7eb;
+  --app-header-bg: #ffffff;
+  --app-header-text: #172033;
+  --app-text: #172033;
+  --app-text-secondary: #667085;
+  --app-border: #e6e8ef;
 }
 
 .app-theme-dark {
-  --app-bg: #141414;
-  --app-surface: #1f1f1f;
+  --app-bg: #0f172a;
+  --app-surface: #111827;
   --app-header-bg: #111827;
-  --app-header-text: #f9fafb;
-  --app-text: #f3f4f6;
-  --app-text-secondary: #9ca3af;
-  --app-border: #303030;
+  --app-header-text: #f8fafc;
+  --app-text: #f8fafc;
+  --app-text-secondary: #94a3b8;
+  --app-border: #293449;
 }
 
 .app-header {
@@ -62,6 +62,7 @@ select {
   padding-inline: 24px;
   background: var(--app-header-bg) !important;
   border-bottom: 1px solid var(--app-border);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
 }
 
 .app-brand {
@@ -77,6 +78,21 @@ select {
 .app-content {
   padding: 24px;
   background: var(--app-bg);
+}
+
+.app-shell .ant-layout-sider,
+.app-shell .ant-layout-sider-children {
+  background: var(--app-surface) !important;
+}
+
+.app-shell .ant-layout-sider {
+  border-right: 1px solid var(--app-border);
+}
+
+.app-shell .ant-menu,
+.app-shell .ant-menu-light,
+.app-shell .ant-menu-dark {
+  background: transparent !important;
 }
 
 .app-theme-dark .ant-layout,
