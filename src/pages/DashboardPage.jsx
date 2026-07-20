@@ -24,6 +24,21 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+function DashboardPageHeader({ subtitle }) {
+  const { t } = useI18n();
+
+  return (
+    <div className="dashboard-page__header">
+      <Title level={2} className="dashboard-page__title">
+        {t("dashboard.title", "Dashboard")}
+      </Title>
+      <Text type="secondary" className="dashboard-page__subtitle">
+        {subtitle}
+      </Text>
+    </div>
+  );
+}
+
 function PopularPositionsSection({ data }) {
   const { t } = useI18n();
   const popularPositionsColumns = [
@@ -164,17 +179,16 @@ function CandidateDashboard({ data }) {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {t("dashboard.title", "Dashboard")}
-        </Title>
-        <Text type="secondary">
-          {t("dashboard.candidateSubtitle", "Your current CV and profile overview.")}
-        </Text>
-      </div>
+    <div className="dashboard-page">
+      <DashboardPageHeader
+        subtitle={t(
+          "dashboard.candidateSubtitle",
+          "Your current CV and profile overview.",
+        )}
+      />
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section dashboard-page__section--stats">
+        <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={8}>
           <Card><Statistic title={t("dashboard.totalMyCvs", "Total My CVs")} value={stats.totalCvs || 0} /></Card>
         </Col>
@@ -203,9 +217,11 @@ function CandidateDashboard({ data }) {
             />
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </div>
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section">
+        <Row className="dashboard-page__grid" gutter={[16, 16]}>
         <Col xs={24} xl={12}>
           <Card title={t("dashboard.recentCvs", "Recent CVs")}>
             <Table
@@ -228,17 +244,20 @@ function CandidateDashboard({ data }) {
             />
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </div>
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section">
+        <Row className="dashboard-page__grid" gutter={[16, 16]}>
         <Col xs={24} xl={16}>
           <PopularPositionsSection data={data} />
         </Col>
         <Col xs={24} xl={8}>
           <TechnologyTagCloudSection data={data} />
         </Col>
-      </Row>
-    </Space>
+        </Row>
+      </div>
+    </div>
   );
 }
 
@@ -307,20 +326,16 @@ function RecruiterDashboard({ data }) {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 8 }}>
-          {t("dashboard.title", "Dashboard")}
-        </Title>
-        <Text type="secondary">
-          {t(
-            "dashboard.recruiterSubtitle",
-            "Recruiter/admin overview for the current MVP.",
-          )}
-        </Text>
-      </div>
+    <div className="dashboard-page">
+      <DashboardPageHeader
+        subtitle={t(
+          "dashboard.recruiterSubtitle",
+          "Recruiter/admin overview for the current MVP.",
+        )}
+      />
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section dashboard-page__section--stats">
+        <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={8}>
           <Card><Statistic title={t("dashboard.totalPositions", "Total Positions")} value={stats.positions || 0} /></Card>
         </Col>
@@ -341,9 +356,11 @@ function RecruiterDashboard({ data }) {
         <Col xs={24} sm={12} lg={8}>
           <Card><Statistic title={t("dashboard.publicPositions", "Public Positions")} value={stats.publicPositions || 0} /></Card>
         </Col>
-      </Row>
+        </Row>
+      </div>
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section">
+        <Row className="dashboard-page__grid" gutter={[16, 16]}>
         <Col xs={24} xl={12}>
           <Card title={t("dashboard.recentPublishedCvs", "Recent Published CVs")}>
             <Table
@@ -370,17 +387,20 @@ function RecruiterDashboard({ data }) {
             />
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </div>
 
-      <Row gutter={[16, 16]}>
+      <div className="dashboard-page__section">
+        <Row className="dashboard-page__grid" gutter={[16, 16]}>
         <Col xs={24} xl={16}>
           <PopularPositionsSection data={data} />
         </Col>
         <Col xs={24} xl={8}>
           <TechnologyTagCloudSection data={data} />
         </Col>
-      </Row>
-    </Space>
+        </Row>
+      </div>
+    </div>
   );
 }
 
@@ -393,29 +413,35 @@ export function DashboardPage() {
 
   if (isError) {
     return (
+      <div className="dashboard-page">
         <Alert
           type="error"
           message={t("dashboard.loadError", "Failed to load dashboard statistics")}
           description={error?.response?.data?.message}
           showIcon
         />
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        <Title level={2} style={{ marginBottom: 0 }}>
+      <div className="dashboard-page">
+        <div className="dashboard-page__header">
+          <Title level={2} className="dashboard-page__title">
           {t("dashboard.title", "Dashboard")}
-        </Title>
-        <Row gutter={[16, 16]}>
+          </Title>
+        </div>
+        <div className="dashboard-page__section dashboard-page__section--stats">
+          <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
           {[1, 2, 3].map((item) => (
             <Col xs={24} sm={12} lg={8} key={item}>
               <Card loading />
             </Col>
           ))}
-        </Row>
-      </Space>
+          </Row>
+        </div>
+      </div>
     );
   }
 

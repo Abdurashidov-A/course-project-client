@@ -145,7 +145,7 @@ export function GlobalSearch() {
   const sections = useMemo(
     () => buildSections(searchResult?.role, searchResult?.results, t),
     [searchResult, t],
-  );
+  ); 
 
   useEffect(
     () => () => {
