@@ -1,15 +1,17 @@
 import {
   Button,
   ConfigProvider,
+  Drawer,
+  Grid,
   Layout,
   Menu,
   Segmented,
-  Space,
   Switch,
   Typography,
   theme,
 } from "antd";
-import { useState } from "react";
+import { MenuOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
 import {
@@ -126,10 +128,13 @@ export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const { themeMode, isDarkMode, setThemeMode } = useThemeMode();
   const { language, setLanguage, t } = useI18n();
+  const screens = Grid.useBreakpoint();
+  const isMobileNav = !screens.lg && !!screens.xs;
   const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [cvPreviewSource, setCvPreviewSource] = useState("my-cvs");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isOAuthCallbackPath = window.location.pathname === "/oauth/callback";
   const menuItems = getMenuItems(user, t);
   const isGuest = !isAuthenticated;
@@ -146,6 +151,38 @@ export default function App() {
         : effectiveSelectedPageKey;
   const selectedPage =
     menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
+
+  useEffect(() => {
+    if (!isMobileNav || isLoginPage) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [isLoginPage, isMobileNav]);
+
+  function handleMenuNavigation(key) {
+    setSelectedPageKey(key);
+
+    if (key !== "cv-preview") {
+      setSelectedCvId(null);
+    }
+
+    if (key !== "position-cvs" && key !== "cv-preview") {
+      setSelectedPositionId(null);
+    }
+
+    setIsMobileMenuOpen(false);
+  }
+
+  const navigationMenuItems = menuItems.map((item) => ({
+    key: item.key,
+    label: item.label,
+  }));
+  const navigationMenuProps = {
+    mode: "inline",
+    theme: isDarkMode ? "dark" : "light",
+    selectedKeys: [menuSelectedKey],
+    onClick: ({ key }) => handleMenuNavigation(key),
+    items: navigationMenuItems,
+  };
   const themeTokens = {
     colorPrimary: isDarkMode ? "#818cf8" : "#4f46e5",
     borderRadius: 12,
@@ -169,11 +206,25 @@ export default function App() {
         ) : (
           <Layout style={{ minHeight: "100vh", background: "var(--app-bg)" }}>
             <Header className="app-header">
-              <div className="app-brand">{t("app.title", "CV Management System")}</div>
+              <div className="app-header__brand-row">
+                {isMobileNav && !isLoginPage ? (
+                  <Button
+                    type="text"
+                    icon={<MenuOutlined />}
+                    className="app-mobile-menu-button"
+                    aria-label={t("common.menu", "Menu")}
+                    onClick={() => setIsMobileMenuOpen(true)}
+                  />
+                ) : null}
+                <div className="app-brand">{t("app.title", "CV Management System")}</div>
+              </div>
 
-              <Space wrap>
+              <div className="app-header__search">
                 <GlobalSearch />
-                <Space size="small">
+              </div>
+
+              <div className="app-header__controls">
+                <div className="app-header__control-group">
                   <Text className="app-header-text">{t("header.theme", "Theme")}</Text>
                   <Switch
                     checked={isDarkMode}
@@ -183,8 +234,8 @@ export default function App() {
                       setThemeMode(checked ? "dark" : "light")
                     }
                   />
-                </Space>
-                <Space size="small">
+                </div>
+                <div className="app-header__control-group">
                   <Text className="app-header-text">
                     {t("header.language", "Language")}
                   </Text>
@@ -197,18 +248,19 @@ export default function App() {
                       { label: "UZ", value: "uz" },
                     ]}
                   />
-                </Space>
-                <Text className="app-header-text">
+                </div>
+                <Text className="app-header-text app-header__user">
                   {isGuest ? t("guest.guest", "Guest") : user.name}
                 </Text>
                 {isGuest ? (
-                  <Button onClick={() => setSelectedPageKey("login")}>
+                  <Button onClick={() => handleMenuNavigation("login")}>
                     {t("header.login", "Login")}
                   </Button>
                 ) : (
                   <Button
                     onClick={() => {
                       logout();
+                      setIsMobileMenuOpen(false);
                       setSelectedPageKey("dashboard");
                       setSelectedCvId(null);
                       setSelectedPositionId(null);
@@ -218,34 +270,38 @@ export default function App() {
                     {t("header.logout", "Logout")}
                   </Button>
                 )}
-              </Space>
+              </div>
             </Header>
 
             <Layout style={{ background: "var(--app-bg)" }}>
-              {!isLoginPage ? (
+              {!isLoginPage && !isMobileNav ? (
                 <Sider width={240} theme={isDarkMode ? "dark" : "light"}>
                   <Menu
-                    mode="inline"
-                    theme={isDarkMode ? "dark" : "light"}
-                    selectedKeys={[menuSelectedKey]}
-                    onClick={({ key }) => {
-                      setSelectedPageKey(key);
-
-                      if (key !== "cv-preview") {
-                        setSelectedCvId(null);
-                      }
-
-                      if (key !== "position-cvs" && key !== "cv-preview") {
-                        setSelectedPositionId(null);
-                      }
-                    }}
-                    items={menuItems.map((item) => ({
-                      key: item.key,
-                      label: item.label,
-                    }))}
+                    {...navigationMenuProps}
                     style={{ height: "100%", borderRight: 0 }}
                   />
                 </Sider>
+              ) : null}
+
+              {isMobileNav && !isLoginPage ? (
+                <Drawer
+                  placement="left"
+                  open={isMobileMenuOpen}
+                  onClose={() => setIsMobileMenuOpen(false)}
+                  width={272}
+                  className="app-mobile-drawer"
+                  title={null}
+                  styles={{
+                    header: { display: "none" },
+                    body: { padding: 0 },
+                  }}
+                >
+                  <Menu
+                    {...navigationMenuProps}
+                    className="app-mobile-drawer__menu"
+                    style={{ borderRight: 0 }}
+                  />
+                </Drawer>
               ) : null}
 
               <Content
