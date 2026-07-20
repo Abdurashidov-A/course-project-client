@@ -84,6 +84,17 @@ select {
   background: var(--app-bg);
 }
 
+.app-content--login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+}
+
+.app-content--login > div {
+  width: 100%;
+}
+
 .app-shell .ant-layout-sider,
 .app-shell .ant-layout-sider-children {
   background: var(--app-surface) !important;
@@ -495,6 +506,10 @@ select {
     padding-inline: 4px;
   }
 
+  .app-content--login {
+    padding-inline: 20px;
+  }
+
   .dashboard-page__header {
     margin-bottom: 24px;
   }
@@ -522,6 +537,14 @@ select {
 }
 
 @media (max-width: 768px) {
+  .app-content {
+    padding: 20px 16px;
+  }
+
+  .app-content--login {
+    padding-inline: 16px;
+  }
+
   .dashboard-page {
     padding-inline: 0;
   }

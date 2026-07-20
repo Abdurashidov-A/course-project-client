@@ -135,6 +135,7 @@ export default function App() {
   const isGuest = !isAuthenticated;
   const effectiveSelectedPageKey =
     !isGuest && selectedPageKey === "login" ? "dashboard" : selectedPageKey;
+  const isLoginPage = isGuest && effectiveSelectedPageKey === "login";
   const menuSelectedKey =
     effectiveSelectedPageKey === "cv-preview"
       ? cvPreviewSource === "position-cvs"
@@ -221,31 +222,35 @@ export default function App() {
             </Header>
 
             <Layout style={{ background: "var(--app-bg)" }}>
-              <Sider width={240} theme={isDarkMode ? "dark" : "light"}>
-                <Menu
-                  mode="inline"
-                  theme={isDarkMode ? "dark" : "light"}
-                  selectedKeys={[menuSelectedKey]}
-                  onClick={({ key }) => {
-                    setSelectedPageKey(key);
+              {!isLoginPage ? (
+                <Sider width={240} theme={isDarkMode ? "dark" : "light"}>
+                  <Menu
+                    mode="inline"
+                    theme={isDarkMode ? "dark" : "light"}
+                    selectedKeys={[menuSelectedKey]}
+                    onClick={({ key }) => {
+                      setSelectedPageKey(key);
 
-                    if (key !== "cv-preview") {
-                      setSelectedCvId(null);
-                    }
+                      if (key !== "cv-preview") {
+                        setSelectedCvId(null);
+                      }
 
-                    if (key !== "position-cvs" && key !== "cv-preview") {
-                      setSelectedPositionId(null);
-                    }
-                  }}
-                  items={menuItems.map((item) => ({
-                    key: item.key,
-                    label: item.label,
-                  }))}
-                  style={{ height: "100%", borderRight: 0 }}
-                />
-              </Sider>
+                      if (key !== "position-cvs" && key !== "cv-preview") {
+                        setSelectedPositionId(null);
+                      }
+                    }}
+                    items={menuItems.map((item) => ({
+                      key: item.key,
+                      label: item.label,
+                    }))}
+                    style={{ height: "100%", borderRight: 0 }}
+                  />
+                </Sider>
+              ) : null}
 
-              <Content className="app-content">
+              <Content
+                className={`app-content${isLoginPage ? " app-content--login" : ""}`}
+              >
                 {isGuest ? (
                   effectiveSelectedPageKey === "positions" ? (
                     <PublicPositionsPage
