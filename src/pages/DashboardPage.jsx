@@ -13,8 +13,10 @@ import {
 import {
   AppstoreOutlined,
   AuditOutlined,
+  BarChartOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  FileDoneOutlined,
   FileTextOutlined,
   FolderOpenOutlined,
   FormOutlined,
@@ -66,6 +68,17 @@ function DashboardStatCard({ title, value, icon, tone }) {
   );
 }
 
+function DashboardSectionTitle({ icon, title }) {
+  return (
+    <span className="dashboard-section-title">
+      <span className="dashboard-section-title__icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="dashboard-section-title__text">{title}</span>
+    </span>
+  );
+}
+
 function PopularPositionsSection({ data }) {
   const { t } = useI18n();
   const popularPositionsColumns = [
@@ -75,8 +88,10 @@ function PopularPositionsSection({ data }) {
       key: "title",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
-          <Text>{record.title || t("common.none", "—")}</Text>
-          <Text type="secondary">
+          <Text className="dashboard-table__primary">
+            {record.title || t("common.none", "—")}
+          </Text>
+          <Text className="dashboard-table__secondary">
             {record.shortDescription || t("common.noDescription", "No description")}
           </Text>
         </Space>
@@ -97,12 +112,23 @@ function PopularPositionsSection({ data }) {
   ];
 
   return (
-    <Card title={t("dashboard.popularPositions", "Most Popular Positions")}>
+    <Card
+      className="dashboard-section-card dashboard-section-card--table"
+      title={
+        <DashboardSectionTitle
+          icon={<BarChartOutlined />}
+          title={t("dashboard.popularPositions", "Most Popular Positions")}
+        />
+      }
+    >
       <Table
+        className="dashboard-table"
         rowKey="id"
         columns={popularPositionsColumns}
         dataSource={data?.popularPositions || []}
         pagination={false}
+        size="middle"
+        scroll={{ x: "max-content" }}
         locale={{
           emptyText: (
             <Empty description={t("dashboard.noPopularPositions", "No popular positions yet")} />
@@ -118,7 +144,15 @@ function TechnologyTagCloudSection({ data }) {
   const technologyTags = data?.technologyTagCloud || [];
 
   return (
-    <Card title={t("dashboard.technologyTagCloud", "Technology Tag Cloud")}>
+    <Card
+      className="dashboard-section-card dashboard-section-card--content"
+      title={
+        <DashboardSectionTitle
+          icon={<TagsOutlined />}
+          title={t("dashboard.technologyTagCloud", "Technology Tag Cloud")}
+        />
+      }
+    >
       {technologyTags.length > 0 ? (
         <Space wrap size={[8, 12]}>
           {technologyTags.map((item) => (
@@ -194,7 +228,10 @@ function CandidateDashboard({ data }) {
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={status === "PUBLISHED" ? "green" : "blue"}>
+        <Tag
+          className="dashboard-table__status-tag"
+          color={status === "PUBLISHED" ? "green" : "blue"}
+        >
           {t(`status.${status}`, status)}
         </Tag>
       ),
@@ -274,29 +311,55 @@ function CandidateDashboard({ data }) {
       </div>
 
       <div className="dashboard-page__section">
-        <Row className="dashboard-page__grid" gutter={[16, 16]}>
-        <Col xs={24} xl={12}>
-          <Card title={t("dashboard.recentCvs", "Recent CVs")}>
-            <Table
-              rowKey="id"
-              columns={recentCvsColumns}
-              dataSource={data?.recentCvs || []}
-              pagination={false}
-              locale={{ emptyText: <Empty description={t("dashboard.noCvs", "No CVs yet")} /> }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} xl={12}>
-          <Card title={t("dashboard.recentProjects", "Recent Projects")}>
-            <Table
-              rowKey="id"
-              columns={recentProjectsColumns}
-              dataSource={data?.recentProjects || []}
-              pagination={false}
-              locale={{ emptyText: <Empty description={t("dashboard.noProjects", "No projects yet")} /> }}
-            />
-          </Card>
-        </Col>
+        <Row className="dashboard-page__grid dashboard-page__grid--sections" gutter={[16, 16]}>
+          <Col xs={24} xl={12}>
+            <Card
+              className="dashboard-section-card dashboard-section-card--table"
+              title={
+                <DashboardSectionTitle
+                  icon={<FileTextOutlined />}
+                  title={t("dashboard.recentCvs", "Recent CVs")}
+                />
+              }
+            >
+              <Table
+                className="dashboard-table"
+                rowKey="id"
+                columns={recentCvsColumns}
+                dataSource={data?.recentCvs || []}
+                pagination={false}
+                size="middle"
+                scroll={{ x: "max-content" }}
+                locale={{
+                  emptyText: <Empty description={t("dashboard.noCvs", "No CVs yet")} />,
+                }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card
+              className="dashboard-section-card dashboard-section-card--table"
+              title={
+                <DashboardSectionTitle
+                  icon={<FolderOpenOutlined />}
+                  title={t("dashboard.recentProjects", "Recent Projects")}
+                />
+              }
+            >
+              <Table
+                className="dashboard-table"
+                rowKey="id"
+                columns={recentProjectsColumns}
+                dataSource={data?.recentProjects || []}
+                pagination={false}
+                size="middle"
+                scroll={{ x: "max-content" }}
+                locale={{
+                  emptyText: <Empty description={t("dashboard.noProjects", "No projects yet")} />,
+                }}
+              />
+            </Card>
+          </Col>
         </Row>
       </div>
 
@@ -397,7 +460,10 @@ function RecruiterDashboard({ data }) {
       dataIndex: "isPublic",
       key: "isPublic",
       render: (isPublic) => (
-        <Tag color={isPublic ? "green" : "orange"}>
+        <Tag
+          className="dashboard-table__status-tag"
+          color={isPublic ? "green" : "orange"}
+        >
           {isPublic
             ? t("access.public", "Public")
             : t("access.restricted", "Restricted")}
@@ -443,33 +509,59 @@ function RecruiterDashboard({ data }) {
       </div>
 
       <div className="dashboard-page__section">
-        <Row className="dashboard-page__grid" gutter={[16, 16]}>
-        <Col xs={24} xl={12}>
-          <Card title={t("dashboard.recentPublishedCvs", "Recent Published CVs")}>
-            <Table
-              rowKey="id"
-              columns={recentPublishedCvsColumns}
-              dataSource={data?.recentPublishedCvs || []}
-              pagination={false}
-              locale={{
-                emptyText: (
-                  <Empty description={t("dashboard.noPublishedCvs", "No published CVs yet")} />
-                ),
-              }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} xl={12}>
-          <Card title={t("dashboard.recentPositions", "Recent Positions")}>
-            <Table
-              rowKey="id"
-              columns={recentPositionsColumns}
-              dataSource={data?.recentPositions || []}
-              pagination={false}
-              locale={{ emptyText: <Empty description={t("dashboard.noPositions", "No positions yet")} /> }}
-            />
-          </Card>
-        </Col>
+        <Row className="dashboard-page__grid dashboard-page__grid--sections" gutter={[16, 16]}>
+          <Col xs={24} xl={12}>
+            <Card
+              className="dashboard-section-card dashboard-section-card--table"
+              title={
+                <DashboardSectionTitle
+                  icon={<FileDoneOutlined />}
+                  title={t("dashboard.recentPublishedCvs", "Recent Published CVs")}
+                />
+              }
+            >
+              <Table
+                className="dashboard-table"
+                rowKey="id"
+                columns={recentPublishedCvsColumns}
+                dataSource={data?.recentPublishedCvs || []}
+                pagination={false}
+                size="middle"
+                scroll={{ x: "max-content" }}
+                locale={{
+                  emptyText: (
+                    <Empty description={t("dashboard.noPublishedCvs", "No published CVs yet")} />
+                  ),
+                }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card
+              className="dashboard-section-card dashboard-section-card--table"
+              title={
+                <DashboardSectionTitle
+                  icon={<AppstoreOutlined />}
+                  title={t("dashboard.recentPositions", "Recent Positions")}
+                />
+              }
+            >
+              <Table
+                className="dashboard-table"
+                rowKey="id"
+                columns={recentPositionsColumns}
+                dataSource={data?.recentPositions || []}
+                pagination={false}
+                size="middle"
+                scroll={{ x: "max-content" }}
+                locale={{
+                  emptyText: (
+                    <Empty description={t("dashboard.noPositions", "No positions yet")} />
+                  ),
+                }}
+              />
+            </Card>
+          </Col>
         </Row>
       </div>
 
