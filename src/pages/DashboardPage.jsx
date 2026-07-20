@@ -6,11 +6,22 @@ import {
   Empty,
   Row,
   Space,
-  Statistic,
   Table,
   Tag,
   Typography,
 } from "antd";
+import {
+  AppstoreOutlined,
+  AuditOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  FormOutlined,
+  GlobalOutlined,
+  TagsOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 import { getDashboardStats } from "../api/dashboardApi";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -36,6 +47,22 @@ function DashboardPageHeader({ subtitle }) {
         {subtitle}
       </Text>
     </div>
+  );
+}
+
+function DashboardStatCard({ title, value, icon, tone }) {
+  return (
+    <Card className={`dashboard-stat-card dashboard-stat-card--${tone}`}>
+      <div className="dashboard-stat-card__inner">
+        <div className="dashboard-stat-card__icon" aria-hidden="true">
+          {icon}
+        </div>
+        <div className="dashboard-stat-card__content">
+          <Text className="dashboard-stat-card__label">{title}</Text>
+          <Text className="dashboard-stat-card__value">{value}</Text>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -110,6 +137,50 @@ function TechnologyTagCloudSection({ data }) {
 function CandidateDashboard({ data }) {
   const { t } = useI18n();
   const stats = data?.stats || {};
+  const statCards = [
+    {
+      key: "total-cvs",
+      title: t("dashboard.totalMyCvs", "Total My CVs"),
+      value: stats.totalCvs || 0,
+      icon: <FileTextOutlined />,
+      tone: "indigo",
+    },
+    {
+      key: "published-cvs",
+      title: t("dashboard.publishedCvs", "Published CVs"),
+      value: stats.publishedCvs || 0,
+      icon: <CheckCircleOutlined />,
+      tone: "blue",
+    },
+    {
+      key: "draft-cvs",
+      title: t("dashboard.draftCvs", "Draft CVs"),
+      value: stats.draftCvs || 0,
+      icon: <FormOutlined />,
+      tone: "orange",
+    },
+    {
+      key: "projects",
+      title: t("dashboard.myProjects", "My Projects"),
+      value: stats.projects || 0,
+      icon: <FolderOpenOutlined />,
+      tone: "purple",
+    },
+    {
+      key: "filled-profile-attributes",
+      title: t("dashboard.filledProfileAttributes", "Filled Profile Attributes"),
+      value: stats.filledProfileAttributes || 0,
+      icon: <AuditOutlined />,
+      tone: "teal",
+    },
+    {
+      key: "missing-profile-attributes",
+      title: t("dashboard.missingProfileAttributes", "Missing Profile Attributes"),
+      value: stats.missingProfileAttributes || 0,
+      icon: <ExclamationCircleOutlined />,
+      tone: "orange",
+    },
+  ];
 
   const recentCvsColumns = [
     {
@@ -189,34 +260,16 @@ function CandidateDashboard({ data }) {
 
       <div className="dashboard-page__section dashboard-page__section--stats">
         <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.totalMyCvs", "Total My CVs")} value={stats.totalCvs || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.publishedCvs", "Published CVs")} value={stats.publishedCvs || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.draftCvs", "Draft CVs")} value={stats.draftCvs || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.myProjects", "My Projects")} value={stats.projects || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title={t("dashboard.filledProfileAttributes", "Filled Profile Attributes")}
-              value={stats.filledProfileAttributes || 0}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title={t("dashboard.missingProfileAttributes", "Missing Profile Attributes")}
-              value={stats.missingProfileAttributes || 0}
-            />
-          </Card>
-        </Col>
+          {statCards.map((item) => (
+            <Col xs={24} sm={12} lg={8} key={item.key}>
+              <DashboardStatCard
+                title={item.title}
+                value={item.value}
+                icon={item.icon}
+                tone={item.tone}
+              />
+            </Col>
+          ))}
         </Row>
       </div>
 
@@ -264,6 +317,46 @@ function CandidateDashboard({ data }) {
 function RecruiterDashboard({ data }) {
   const { t } = useI18n();
   const stats = data?.stats || {};
+  const statCards = [
+    {
+      key: "total-positions",
+      title: t("dashboard.totalPositions", "Total Positions"),
+      value: stats.positions || 0,
+      icon: <AppstoreOutlined />,
+      tone: "indigo",
+    },
+    {
+      key: "total-attributes",
+      title: t("dashboard.totalAttributes", "Total Reusable Attributes"),
+      value: stats.attributes || 0,
+      icon: <TagsOutlined />,
+      tone: "teal",
+    },
+    {
+      key: "published-cvs",
+      title: t("dashboard.publishedCvs", "Published CVs"),
+      value: stats.publishedCvs || 0,
+      icon: <CheckCircleOutlined />,
+      tone: "blue",
+    },
+    {
+      key: "candidates-with-published-cvs",
+      title: t(
+        "dashboard.candidatesWithPublishedCvs",
+        "Candidates With Published CVs",
+      ),
+      value: stats.candidatesWithPublishedCvs || 0,
+      icon: <TeamOutlined />,
+      tone: "purple",
+    },
+    {
+      key: "public-positions",
+      title: t("dashboard.publicPositions", "Public Positions"),
+      value: stats.publicPositions || 0,
+      icon: <GlobalOutlined />,
+      tone: "orange",
+    },
+  ];
 
   const recentPublishedCvsColumns = [
     {
@@ -336,26 +429,16 @@ function RecruiterDashboard({ data }) {
 
       <div className="dashboard-page__section dashboard-page__section--stats">
         <Row className="dashboard-page__grid dashboard-page__grid--stats" gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.totalPositions", "Total Positions")} value={stats.positions || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.totalAttributes", "Total Reusable Attributes")} value={stats.attributes || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.publishedCvs", "Published CVs")} value={stats.publishedCvs || 0} /></Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card>
-            <Statistic
-              title={t("dashboard.candidatesWithPublishedCvs", "Candidates With Published CVs")}
-              value={stats.candidatesWithPublishedCvs || 0}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card><Statistic title={t("dashboard.publicPositions", "Public Positions")} value={stats.publicPositions || 0} /></Card>
-        </Col>
+          {statCards.map((item) => (
+            <Col xs={24} sm={12} lg={8} key={item.key}>
+              <DashboardStatCard
+                title={item.title}
+                value={item.value}
+                icon={item.icon}
+                tone={item.tone}
+              />
+            </Col>
+          ))}
         </Row>
       </div>
 
