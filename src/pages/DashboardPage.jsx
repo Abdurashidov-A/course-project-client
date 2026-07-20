@@ -94,12 +94,13 @@ function TechnologyTagChip({ name, count, highlighted }) {
 function PopularPositionsSection({ data }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
-  const tableScroll = screens.md ? undefined : { x: "max-content" };
+  const tableScroll = screens.lg ? undefined : { x: "max-content" };
   const popularPositionsColumns = [
     {
       title: t("dashboard.position", "Position"),
       dataIndex: "title",
       key: "title",
+      className: "dashboard-table__cell--position",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Text className="dashboard-table__primary">
@@ -115,13 +116,15 @@ function PopularPositionsSection({ data }) {
       title: t("dashboard.submittedCvs", "Submitted CVs"),
       dataIndex: "submittedCvsCount",
       key: "submittedCvsCount",
-      width: 128,
+      className: "dashboard-table__cell--numeric",
+      width: 112,
     },
     {
       title: t("dashboard.publishedCvs", "Published CVs"),
       dataIndex: "publishedCvsCount",
       key: "publishedCvsCount",
-      width: 128,
+      className: "dashboard-table__cell--numeric",
+      width: 112,
     },
   ];
 
@@ -136,12 +139,13 @@ function PopularPositionsSection({ data }) {
       }
     >
       <Table
-        className="dashboard-table"
+        className="dashboard-table dashboard-table--popular-positions"
         rowKey="id"
         columns={popularPositionsColumns}
         dataSource={data?.popularPositions || []}
         pagination={false}
         size="middle"
+        tableLayout={screens.lg ? "fixed" : "auto"}
         scroll={tableScroll}
         locale={{
           emptyText: (
@@ -192,7 +196,7 @@ function TechnologyTagCloudSection({ data }) {
 function CandidateDashboard({ data }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
-  const tableScroll = screens.md ? undefined : { x: "max-content" };
+  const tableScroll = screens.lg ? undefined : { x: "max-content" };
   const stats = data?.stats || {};
   const statCards = [
     {
@@ -263,12 +267,16 @@ function CandidateDashboard({ data }) {
       title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: formatDate,
+      className: "dashboard-table__cell--date",
+      render: (value) => (
+        <Text className="dashboard-table__date">{formatDate(value)}</Text>
+      ),
     },
     {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
+      className: "dashboard-table__cell--version",
       width: 88,
     },
   ];
@@ -284,6 +292,7 @@ function CandidateDashboard({ data }) {
       title: t("projects.technologyTags", "Technology Tags"),
       dataIndex: "technologyTags",
       key: "technologyTags",
+      className: "dashboard-table__cell--tags",
       render: (technologyTags) =>
         technologyTags?.length ? (
           <Space wrap className="dashboard-table__tag-list">
@@ -301,12 +310,16 @@ function CandidateDashboard({ data }) {
       title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: formatDate,
+      className: "dashboard-table__cell--date",
+      render: (value) => (
+        <Text className="dashboard-table__date">{formatDate(value)}</Text>
+      ),
     },
     {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
+      className: "dashboard-table__cell--version",
       width: 88,
     },
   ];
@@ -372,12 +385,13 @@ function CandidateDashboard({ data }) {
               }
             >
               <Table
-                className="dashboard-table"
+                className="dashboard-table dashboard-table--recent-projects"
                 rowKey="id"
                 columns={recentProjectsColumns}
                 dataSource={data?.recentProjects || []}
                 pagination={false}
                 size="middle"
+                tableLayout={screens.lg ? "fixed" : "auto"}
                 scroll={tableScroll}
                 locale={{
                   emptyText: <Empty description={t("dashboard.noProjects", "No projects yet")} />,
@@ -405,7 +419,7 @@ function CandidateDashboard({ data }) {
 function RecruiterDashboard({ data }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
-  const tableScroll = screens.md ? undefined : { x: "max-content" };
+  const tableScroll = screens.lg ? undefined : { x: "max-content" };
   const stats = data?.stats || {};
   const statCards = [
     {
@@ -471,7 +485,10 @@ function RecruiterDashboard({ data }) {
       title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: formatDate,
+      className: "dashboard-table__cell--date",
+      render: (value) => (
+        <Text className="dashboard-table__date">{formatDate(value)}</Text>
+      ),
     },
   ];
 
@@ -501,12 +518,16 @@ function RecruiterDashboard({ data }) {
       title: t("dashboard.updatedAt", "Updated At"),
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: formatDate,
+      className: "dashboard-table__cell--date",
+      render: (value) => (
+        <Text className="dashboard-table__date">{formatDate(value)}</Text>
+      ),
     },
     {
       title: t("dashboard.version", "Version"),
       dataIndex: "version",
       key: "version",
+      className: "dashboard-table__cell--version",
       width: 88,
     },
   ];

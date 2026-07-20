@@ -263,6 +263,10 @@ select {
   align-items: stretch;
 }
 
+.dashboard-page__grid--sections {
+  align-items: flex-start;
+}
+
 .dashboard-page__grid--stats > .ant-col {
   display: flex;
 }
@@ -272,12 +276,11 @@ select {
 }
 
 .dashboard-page__grid--sections > .ant-col {
-  display: flex;
-  align-items: flex-start;
   min-width: 0;
 }
 
 .dashboard-page__grid--sections > .ant-col > .dashboard-section-card {
+  width: 100%;
   min-width: 0;
 }
 
@@ -558,6 +561,26 @@ select {
   line-height: 1.5;
 }
 
+.dashboard-table__date.ant-typography {
+  margin: 0;
+  color: inherit;
+  white-space: normal;
+  line-height: 1.45;
+}
+
+.dashboard-table__cell--version {
+  white-space: nowrap;
+}
+
+.dashboard-table__cell--numeric,
+.dashboard-table__cell--numeric.ant-table-cell {
+  white-space: nowrap;
+}
+
+.dashboard-table__cell--tags {
+  white-space: normal;
+}
+
 .dashboard-table__status-tag.ant-tag {
   margin-inline-end: 0;
   border-radius: 999px;
@@ -578,8 +601,22 @@ select {
   max-width: 100%;
 }
 
+.dashboard-table__tag-list.ant-space,
+.dashboard-table__tag-list .ant-space-item,
+.dashboard-table__tag-list .dashboard-table__info-tag.ant-tag {
+  white-space: normal;
+}
+
 .dashboard-table__tag-list .ant-space-item {
   max-width: 100%;
+}
+
+@media (min-width: 992px) {
+  .dashboard-table--recent-projects .ant-table table,
+  .dashboard-table--popular-positions .ant-table table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
 }
 
 .dashboard-error-alert.ant-alert {
