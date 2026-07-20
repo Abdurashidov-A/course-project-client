@@ -1,4 +1,5 @@
 import { Button, Card, Divider, Space, Typography, message } from "antd";
+import { GithubOutlined, GoogleOutlined } from "@ant-design/icons";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -58,10 +59,18 @@ export default function LoginPage({ embedded = false }) {
           </div>
 
           <Space direction="vertical" style={{ width: "100%" }}>
-            <Button block onClick={() => handleOAuthLogin("google")}>
+            <Button
+              block
+              icon={<GoogleOutlined />}
+              onClick={() => handleOAuthLogin("google")}
+            >
               {t("login.google", "Continue with Google")}
             </Button>
-            <Button block onClick={() => handleOAuthLogin("github")}>
+            <Button
+              block
+              icon={<GithubOutlined />}
+              onClick={() => handleOAuthLogin("github")}
+            >
               {t("login.github", "Continue with GitHub")}
             </Button>
           </Space>
