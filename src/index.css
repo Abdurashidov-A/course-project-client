@@ -270,7 +270,8 @@ select {
   align-items: flex-start;
 }
 
-.responsive-page__header--primary-action {
+.responsive-page__header--primary-action,
+.responsive-page__header--with-toolbar {
   margin-bottom: 16px;
 }
 

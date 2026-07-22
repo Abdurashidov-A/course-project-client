@@ -642,15 +642,7 @@ export function CandidateProfilePage({ user }) {
 
   return (
     <Card className="responsive-page-card">
-      <Space
-        wrap
-        className="responsive-page__header"
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
+      <div className="responsive-page__header responsive-page__header--primary-action">
         <div className="responsive-page__title-group">
           <Title level={3} className="responsive-page__title" style={{ marginBottom: 4 }}>
             {t("profile.title", "My Profile Attributes")}
@@ -675,35 +667,39 @@ export function CandidateProfilePage({ user }) {
           </div>
         </div>
 
-        <Space wrap className="responsive-toolbar__actions">
-          <Popconfirm
-            title={t(
-              "profile.deleteConfirmTitle",
-              "Delete selected profile values?",
-            )}
-            description={t(
-              "profile.deleteConfirmBody",
-              "This will remove values only from candidate profile, not from Attribute Library.",
-            )}
-            okText={t("common.delete", "Delete")}
-            cancelText={t("common.cancel", "Cancel")}
-            disabled={selectedRowKeys.length === 0}
-            onConfirm={() => deleteMutation.mutate(selectedRowKeys)}
-          >
-            <Button
-              danger
-              disabled={selectedRowKeys.length === 0}
-              loading={deleteMutation.isPending}
-            >
-              {t("profile.deleteSelected", "Delete Selected")}
-            </Button>
-          </Popconfirm>
+        <Button type="primary" onClick={openModal}>
+          {t("profile.addOrUpdate", "Add / Update Attribute Value")}
+        </Button>
+      </div>
 
-          <Button type="primary" onClick={openModal}>
-            {t("profile.addOrUpdate", "Add / Update Attribute Value")}
+      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
+        <Text className="responsive-toolbar__meta" type="secondary">
+          {t("common.selected", "Selected")}: {selectedRowKeys.length}
+        </Text>
+
+        <Popconfirm
+          title={t(
+            "profile.deleteConfirmTitle",
+            "Delete selected profile values?",
+          )}
+          description={t(
+            "profile.deleteConfirmBody",
+            "This will remove values only from candidate profile, not from Attribute Library.",
+          )}
+          okText={t("common.delete", "Delete")}
+          cancelText={t("common.cancel", "Cancel")}
+          disabled={selectedRowKeys.length === 0}
+          onConfirm={() => deleteMutation.mutate(selectedRowKeys)}
+        >
+          <Button
+            danger
+            disabled={selectedRowKeys.length === 0}
+            loading={deleteMutation.isPending}
+          >
+            {t("profile.deleteSelected", "Delete Selected")}
           </Button>
-        </Space>
-      </Space>
+        </Popconfirm>
+      </div>
 
       {isError ? (
         <Alert
