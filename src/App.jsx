@@ -219,9 +219,11 @@ export default function App() {
                 <div className="app-brand">{t("app.title", "CV Management System")}</div>
               </div>
 
-              <div className="app-header__search">
-                <GlobalSearch />
-              </div>
+              {!isLoginPage ? (
+                <div className="app-header__search">
+                  <GlobalSearch />
+                </div>
+              ) : null}
 
               <div className="app-header__controls">
                 <div className="app-header__control-group">
