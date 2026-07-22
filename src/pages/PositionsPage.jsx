@@ -600,14 +600,21 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
   return (
     <div className="responsive-page">
-      <div className="responsive-page__header responsive-page__header--stack">
+      <div className="responsive-page__header responsive-page__header--primary-action">
         <div className="responsive-page__title-group">
           <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
             {t("positions.title", "Positions")}
           </Title>
         </div>
 
-        <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 0 }}>
+        {showManagePositions ? (
+          <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+            {t("positions.createPosition", "Create Position")}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
           <Text className="responsive-toolbar__meta" type="secondary">
             {t("common.selected", "Selected")}: {selectedPositionIds.length}
           </Text>
@@ -700,13 +707,6 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
               {t("positions.deleteSelected", "Delete Selected")}
             </Button>
           ) : null}
-        </div>
-
-        {showManagePositions ? (
-          <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
-            {t("positions.createPosition", "Create Position")}
-          </Button>
-        ) : null}
       </div>
 
       <Table

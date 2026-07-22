@@ -1,5 +1,6 @@
 import { Button, Card, Divider, Space, Typography, message } from "antd";
 import { GithubOutlined, GoogleOutlined } from "@ant-design/icons";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -8,7 +9,9 @@ const { Title, Text } = Typography;
 export default function LoginPage({ embedded = false }) {
   const { login } = useAuth();
   const { t } = useI18n();
+  const [loadingAction, setLoadingAction] = useState(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+  const isLoginPending = loadingAction !== null;
 
   const devUsers = [
     {
@@ -26,18 +29,34 @@ export default function LoginPage({ embedded = false }) {
   ];
 
   async function handleLogin(email) {
+    if (isLoginPending) {
+      return;
+    }
+
+    setLoadingAction(email);
+
     try {
       await login(email);
       message.success(t("login.success", "Logged in successfully"));
     } catch (error) {
       console.error(error);
       message.error(t("login.error", "Login failed"));
+    } finally {
+      setLoadingAction(null);
     }
   }
 
   function handleOAuthLogin(provider) {
+    if (isLoginPending) {
+      return;
+    }
+
     const oauthUrl = new URL(`/api/auth/oauth/${provider}`, apiBaseUrl);
-    window.location.assign(oauthUrl.toString());
+    setLoadingAction(provider);
+
+    window.setTimeout(() => {
+      window.location.assign(oauthUrl.toString());
+    }, 50);
   }
 
   return (
@@ -62,6 +81,8 @@ export default function LoginPage({ embedded = false }) {
             <Button
               block
               icon={<GoogleOutlined />}
+              loading={loadingAction === "google"}
+              disabled={isLoginPending && loadingAction !== "google"}
               onClick={() => handleOAuthLogin("google")}
             >
               {t("login.google", "Continue with Google")}
@@ -69,6 +90,8 @@ export default function LoginPage({ embedded = false }) {
             <Button
               block
               icon={<GithubOutlined />}
+              loading={loadingAction === "github"}
+              disabled={isLoginPending && loadingAction !== "github"}
               onClick={() => handleOAuthLogin("github")}
             >
               {t("login.github", "Continue with GitHub")}
@@ -85,6 +108,8 @@ export default function LoginPage({ embedded = false }) {
                 key={user.email}
                 block
                 type="primary"
+                loading={loadingAction === user.email}
+                disabled={isLoginPending && loadingAction !== user.email}
                 onClick={() => handleLogin(user.email)}
               >
                 {user.label}

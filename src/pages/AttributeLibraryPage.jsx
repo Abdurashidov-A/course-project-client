@@ -175,7 +175,7 @@ export function AttributeLibraryPage({ user }) {
 
   return (
     <div className="responsive-page">
-      <div className="responsive-page__header">
+      <div className="responsive-page__header responsive-page__header--primary-action">
         <div className="responsive-page__title-group">
           <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
             {t("attributeLibrary.title", "Attribute Library")}

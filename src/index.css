@@ -270,6 +270,10 @@ select {
   align-items: flex-start;
 }
 
+.responsive-page__header--primary-action {
+  margin-bottom: 16px;
+}
+
 .responsive-page__title-group {
   flex: 1 1 280px;
   min-width: 0;
