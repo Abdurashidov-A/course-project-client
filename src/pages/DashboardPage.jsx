@@ -632,6 +632,8 @@ export function DashboardPage() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: getDashboardStats,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   if (isError) {

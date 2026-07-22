@@ -115,6 +115,8 @@ export function PublicDashboardPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["public-dashboard"],
     queryFn: getPublicStats,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   if (isError) {

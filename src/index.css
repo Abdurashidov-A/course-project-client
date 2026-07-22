@@ -190,6 +190,17 @@ select {
   min-width: 0;
 }
 
+.app-page-loading {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  background: var(--app-bg);
+}
+
+.app-page-loading--full {
+  min-height: 100vh;
+}
+
 .app-content--login {
   display: flex;
   align-items: center;

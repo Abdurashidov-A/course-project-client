@@ -6,13 +6,13 @@ import {
   Layout,
   Menu,
   Segmented,
+  Spin,
   Switch,
   Typography,
   theme,
 } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import LoginPage from "./pages/LoginPage";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "./context/AuthContext";
 import {
   canManageLibrary,
@@ -20,24 +20,78 @@ import {
   isCandidate,
 } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
-import { AttributeLibraryPage } from "./pages/AttributeLibraryPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { PositionsPage } from "./pages/PositionsPage";
-import { CandidateProfilePage } from "./pages/CandidateProfilePage";
-import { MyCvsPage } from "./pages/MyCvsPage";
-import { MyProjectsPage } from "./pages/MyProjectsPage";
-import { CvPreviewPage } from "./pages/CvPreviewPage";
-import { PositionCvsPage } from "./pages/PositionCvsPage";
-import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { useI18n } from "./i18n/I18nProvider";
-import { OAuthCallbackPage } from "./pages/OAuthCallbackPage";
-import { PublicDashboardPage } from "./pages/PublicDashboardPage";
-import { PublicPositionsPage } from "./pages/PublicPositionsPage";
+
+function lazyNamedPage(importPage, exportName) {
+  return lazy(() =>
+    importPage().then((pageModule) => ({ default: pageModule[exportName] })),
+  );
+}
+
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AttributeLibraryPage = lazyNamedPage(
+  () => import("./pages/AttributeLibraryPage"),
+  "AttributeLibraryPage",
+);
+const DashboardPage = lazyNamedPage(
+  () => import("./pages/DashboardPage"),
+  "DashboardPage",
+);
+const PositionsPage = lazyNamedPage(
+  () => import("./pages/PositionsPage"),
+  "PositionsPage",
+);
+const CandidateProfilePage = lazyNamedPage(
+  () => import("./pages/CandidateProfilePage"),
+  "CandidateProfilePage",
+);
+const MyCvsPage = lazyNamedPage(
+  () => import("./pages/MyCvsPage"),
+  "MyCvsPage",
+);
+const MyProjectsPage = lazyNamedPage(
+  () => import("./pages/MyProjectsPage"),
+  "MyProjectsPage",
+);
+const CvPreviewPage = lazyNamedPage(
+  () => import("./pages/CvPreviewPage"),
+  "CvPreviewPage",
+);
+const PositionCvsPage = lazyNamedPage(
+  () => import("./pages/PositionCvsPage"),
+  "PositionCvsPage",
+);
+const AdminUsersPage = lazyNamedPage(
+  () => import("./pages/AdminUsersPage"),
+  "AdminUsersPage",
+);
+const OAuthCallbackPage = lazyNamedPage(
+  () => import("./pages/OAuthCallbackPage"),
+  "OAuthCallbackPage",
+);
+const PublicDashboardPage = lazyNamedPage(
+  () => import("./pages/PublicDashboardPage"),
+  "PublicDashboardPage",
+);
+const PublicPositionsPage = lazyNamedPage(
+  () => import("./pages/PublicPositionsPage"),
+  "PublicPositionsPage",
+);
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+
+function PageLoading({ fullPage = false }) {
+  return (
+    <div
+      className={`app-page-loading${fullPage ? " app-page-loading--full" : ""}`}
+    >
+      <Spin size="large" />
+    </div>
+  );
+}
 
 function getMenuItems(user, t) {
   if (!user) {
@@ -202,7 +256,9 @@ export default function App() {
     >
       <div className={`app-shell app-theme-${themeMode}`}>
         {isOAuthCallbackPath ? (
-          <OAuthCallbackPage />
+          <Suspense fallback={<PageLoading fullPage />}>
+            <OAuthCallbackPage />
+          </Suspense>
         ) : (
           <Layout style={{ minHeight: "100vh", background: "var(--app-bg)" }}>
             <Header className="app-header">
@@ -309,69 +365,71 @@ export default function App() {
               <Content
                 className={`app-content${isLoginPage ? " app-content--login" : ""}`}
               >
-                {isGuest ? (
-                  effectiveSelectedPageKey === "positions" ? (
-                    <PublicPositionsPage
-                      onOpenLogin={() => setSelectedPageKey("login")}
+                <Suspense fallback={<PageLoading />}>
+                  {isGuest ? (
+                    effectiveSelectedPageKey === "positions" ? (
+                      <PublicPositionsPage
+                        onOpenLogin={() => setSelectedPageKey("login")}
+                      />
+                    ) : effectiveSelectedPageKey === "login" ? (
+                      <LoginPage embedded />
+                    ) : (
+                      <PublicDashboardPage />
+                    )
+                  ) : effectiveSelectedPageKey === "dashboard" ? (
+                    <DashboardPage />
+                  ) : effectiveSelectedPageKey === "attribute-library" ? (
+                    <AttributeLibraryPage user={user} />
+                  ) : effectiveSelectedPageKey === "positions" ? (
+                    <PositionsPage
+                      user={user}
+                      onViewPublishedCvs={(positionId) => {
+                        setSelectedPositionId(positionId);
+                        setSelectedPageKey("position-cvs");
+                      }}
                     />
-                  ) : effectiveSelectedPageKey === "login" ? (
-                    <LoginPage embedded />
+                  ) : effectiveSelectedPageKey === "my-profile" ? (
+                    <CandidateProfilePage user={user} />
+                  ) : effectiveSelectedPageKey === "my-cvs" ? (
+                    <MyCvsPage
+                      user={user}
+                      onOpenCv={(cvId) => {
+                        setSelectedCvId(cvId);
+                        setCvPreviewSource("my-cvs");
+                        setSelectedPageKey("cv-preview");
+                      }}
+                    />
+                  ) : effectiveSelectedPageKey === "my-projects" ? (
+                    <MyProjectsPage user={user} />
+                  ) : effectiveSelectedPageKey === "position-cvs" ? (
+                    <PositionCvsPage
+                      user={user}
+                      positionId={selectedPositionId}
+                      onBack={() => {
+                        setSelectedPageKey("positions");
+                      }}
+                      onOpenCv={(cvId) => {
+                        setSelectedCvId(cvId);
+                        setCvPreviewSource("position-cvs");
+                        setSelectedPageKey("cv-preview");
+                      }}
+                    />
+                  ) : effectiveSelectedPageKey === "admin-users" ? (
+                    <AdminUsersPage user={user} />
+                  ) : effectiveSelectedPageKey === "cv-preview" ? (
+                    <CvPreviewPage
+                      cvId={selectedCvId}
+                      onBack={() => {
+                        setSelectedPageKey(cvPreviewSource);
+                      }}
+                    />
                   ) : (
-                    <PublicDashboardPage />
-                  )
-                ) : effectiveSelectedPageKey === "dashboard" ? (
-                  <DashboardPage />
-                ) : effectiveSelectedPageKey === "attribute-library" ? (
-                  <AttributeLibraryPage user={user} />
-                ) : effectiveSelectedPageKey === "positions" ? (
-                  <PositionsPage
-                    user={user}
-                    onViewPublishedCvs={(positionId) => {
-                      setSelectedPositionId(positionId);
-                      setSelectedPageKey("position-cvs");
-                    }}
-                  />
-                ) : effectiveSelectedPageKey === "my-profile" ? (
-                  <CandidateProfilePage user={user} />
-                ) : effectiveSelectedPageKey === "my-cvs" ? (
-                  <MyCvsPage
-                    user={user}
-                    onOpenCv={(cvId) => {
-                      setSelectedCvId(cvId);
-                      setCvPreviewSource("my-cvs");
-                      setSelectedPageKey("cv-preview");
-                    }}
-                  />
-                ) : effectiveSelectedPageKey === "my-projects" ? (
-                  <MyProjectsPage user={user} />
-                ) : effectiveSelectedPageKey === "position-cvs" ? (
-                  <PositionCvsPage
-                    user={user}
-                    positionId={selectedPositionId}
-                    onBack={() => {
-                      setSelectedPageKey("positions");
-                    }}
-                    onOpenCv={(cvId) => {
-                      setSelectedCvId(cvId);
-                      setCvPreviewSource("position-cvs");
-                      setSelectedPageKey("cv-preview");
-                    }}
-                  />
-                ) : effectiveSelectedPageKey === "admin-users" ? (
-                  <AdminUsersPage user={user} />
-                ) : effectiveSelectedPageKey === "cv-preview" ? (
-                  <CvPreviewPage
-                    cvId={selectedCvId}
-                    onBack={() => {
-                      setSelectedPageKey(cvPreviewSource);
-                    }}
-                  />
-                ) : (
-                  <PagePlaceholder
-                    title={selectedPage.title}
-                    description={selectedPage.description}
-                  />
-                )}
+                    <PagePlaceholder
+                      title={selectedPage.title}
+                      description={selectedPage.description}
+                    />
+                  )}
+                </Suspense>
               </Content>
             </Layout>
           </Layout>
