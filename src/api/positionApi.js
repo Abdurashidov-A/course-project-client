@@ -6,6 +6,12 @@ export async function getPositions() {
   return response.data;
 }
 
+export async function getPositionCounts() {
+  const response = await api.get("/api/positions/count");
+
+  return response.data;
+}
+
 export async function createPosition(positionData) {
   const response = await api.post("/api/positions", positionData);
 

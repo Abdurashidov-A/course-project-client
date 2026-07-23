@@ -34,15 +34,25 @@ import {
 } from "../utils/roles";
 import { PositionDiscussion } from "../components/PositionDiscussion";
 import { useI18n } from "../i18n/i18nContext";
+import PositionCount from "../components/PositionCount";
 
 const { Title, Text } = Typography;
 
-const SUPPORTED_ACCESS_RULE_TYPES = ["NUMERIC", "BOOLEAN", "STRING", "SELECT", "DATE"];
+const SUPPORTED_ACCESS_RULE_TYPES = [
+  "NUMERIC",
+  "BOOLEAN",
+  "STRING",
+  "SELECT",
+  "DATE",
+];
 
 function getOperatorOptions(attributeType, t) {
   if (attributeType === "NUMERIC" || attributeType === "DATE") {
     return [
-      { label: t("positions.operatorGte", "Greater than or equal"), value: "GTE" },
+      {
+        label: t("positions.operatorGte", "Greater than or equal"),
+        value: "GTE",
+      },
       { label: t("positions.operatorLte", "Less than or equal"), value: "LTE" },
       { label: t("positions.operatorEq", "Equals"), value: "EQ" },
     ];
@@ -69,7 +79,8 @@ function getNormalizedAccessRules(accessRules = [], attributesById) {
     const normalizedRule = {
       attributeId: rule.attributeId,
       operator: rule.operator,
-      sortOrder: typeof rule.sortOrder === "number" ? rule.sortOrder : index + 1,
+      sortOrder:
+        typeof rule.sortOrder === "number" ? rule.sortOrder : index + 1,
     };
 
     if (type === "NUMERIC") {
@@ -107,7 +118,9 @@ function buildAccessRulesPayload(accessRules = [], attributesById) {
     } else if (type === "BOOLEAN") {
       payload.booleanValue = rule.booleanValue;
     } else if (type === "DATE") {
-      payload.dateValue = rule.dateValue ? dayjs(rule.dateValue).toISOString() : null;
+      payload.dateValue = rule.dateValue
+        ? dayjs(rule.dateValue).toISOString()
+        : null;
     } else if (type === "STRING" || type === "SELECT") {
       payload.stringValue = Array.isArray(rule.stringValue)
         ? rule.stringValue.join(",")
@@ -119,15 +132,17 @@ function buildAccessRulesPayload(accessRules = [], attributesById) {
 }
 
 function syncRequiredAttributeIds(form, attributeIds) {
-  const currentRequiredAttributeIds = form.getFieldValue("requiredAttributeIds");
+  const currentRequiredAttributeIds = form.getFieldValue(
+    "requiredAttributeIds",
+  );
 
   if (!Array.isArray(currentRequiredAttributeIds)) {
     return;
   }
 
   const allowedAttributeIds = new Set(attributeIds);
-  const nextRequiredAttributeIds = currentRequiredAttributeIds.filter((attributeId) =>
-    allowedAttributeIds.has(attributeId),
+  const nextRequiredAttributeIds = currentRequiredAttributeIds.filter(
+    (attributeId) => allowedAttributeIds.has(attributeId),
   );
 
   if (nextRequiredAttributeIds.length !== currentRequiredAttributeIds.length) {
@@ -151,7 +166,14 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
   );
 
   if (isPublic) {
-    return <Text type="secondary">{t("positions.publicHelper", "Public position is available to all authenticated candidates.")}</Text>;
+    return (
+      <Text type="secondary">
+        {t(
+          "positions.publicHelper",
+          "Public position is available to all authenticated candidates.",
+        )}
+      </Text>
+    );
   }
 
   return (
@@ -168,8 +190,13 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
           <Space direction="vertical" size="middle" style={{ width: "100%" }}>
             {fields.map((field) => {
               const currentRule = accessRules[field.name] || {};
-              const selectedAttribute = attributesById.get(currentRule.attributeId);
-              const operatorOptions = getOperatorOptions(selectedAttribute?.type, t);
+              const selectedAttribute = attributesById.get(
+                currentRule.attributeId,
+              );
+              const operatorOptions = getOperatorOptions(
+                selectedAttribute?.type,
+                t,
+              );
               const selectOptions =
                 selectedAttribute?.options?.map((option) => ({
                   label: option.value,
@@ -189,10 +216,17 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                     label={t("positions.ruleAttribute", "Rule Attribute")}
                     name={[field.name, "attributeId"]}
                     rules={[{ required: true }]}
-                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 220, flex: 1 }}
+                    style={
+                      isCompact
+                        ? { width: "100%", flex: "1 1 100%" }
+                        : { minWidth: 220, flex: 1 }
+                    }
                   >
                     <Select
-                      placeholder={t("positions.selectRuleAttribute", "Select attribute")}
+                      placeholder={t(
+                        "positions.selectRuleAttribute",
+                        "Select attribute",
+                      )}
                       options={supportedAttributes.map((attribute) => ({
                         label: `${attribute.name} (${attribute.type})`,
                         value: attribute.id,
@@ -200,7 +234,11 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                       onChange={() => {
                         const nextRules = [...accessRules];
                         nextRules[field.name] = {
-                          attributeId: form.getFieldValue([fieldName, field.name, "attributeId"]),
+                          attributeId: form.getFieldValue([
+                            fieldName,
+                            field.name,
+                            "attributeId",
+                          ]),
                         };
                         form.setFieldValue(fieldName, nextRules);
                       }}
@@ -212,10 +250,17 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                     label={t("positions.operator", "Operator")}
                     name={[field.name, "operator"]}
                     rules={[{ required: true }]}
-                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 180 }}
+                    style={
+                      isCompact
+                        ? { width: "100%", flex: "1 1 100%" }
+                        : { minWidth: 180 }
+                    }
                   >
                     <Select
-                      placeholder={t("positions.selectRuleOperator", "Select operator")}
+                      placeholder={t(
+                        "positions.selectRuleOperator",
+                        "Select operator",
+                      )}
                       options={operatorOptions}
                     />
                   </Form.Item>
@@ -223,24 +268,37 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                   <Form.Item
                     {...field}
                     label={t("positions.value", "Value")}
-                    name={[field.name, selectedAttribute?.type === "NUMERIC"
-                      ? "numericValue"
-                      : selectedAttribute?.type === "BOOLEAN"
-                        ? "booleanValue"
-                        : selectedAttribute?.type === "DATE"
-                          ? "dateValue"
-                          : "stringValue"]}
+                    name={[
+                      field.name,
+                      selectedAttribute?.type === "NUMERIC"
+                        ? "numericValue"
+                        : selectedAttribute?.type === "BOOLEAN"
+                          ? "booleanValue"
+                          : selectedAttribute?.type === "DATE"
+                            ? "dateValue"
+                            : "stringValue",
+                    ]}
                     rules={[{ required: true }]}
-                    style={isCompact ? { width: "100%", flex: "1 1 100%" } : { minWidth: 220, flex: 1 }}
+                    style={
+                      isCompact
+                        ? { width: "100%", flex: "1 1 100%" }
+                        : { minWidth: 220, flex: 1 }
+                    }
                   >
                     {selectedAttribute?.type === "NUMERIC" ? (
                       <InputNumber
                         style={{ width: "100%" }}
-                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        placeholder={t(
+                          "positions.enterRuleValue",
+                          "Enter value",
+                        )}
                       />
                     ) : selectedAttribute?.type === "BOOLEAN" ? (
                       <Select
-                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        placeholder={t(
+                          "positions.enterRuleValue",
+                          "Enter value",
+                        )}
                         options={[
                           { label: t("common.yes", "Yes"), value: true },
                           { label: t("common.no", "No"), value: false },
@@ -252,7 +310,10 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                       currentRule.operator === "EQ" &&
                       selectOptions.length > 0 ? (
                       <Select
-                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        placeholder={t(
+                          "positions.enterRuleValue",
+                          "Enter value",
+                        )}
                         options={selectOptions}
                       />
                     ) : selectedAttribute?.type === "SELECT" &&
@@ -260,18 +321,27 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
                       selectOptions.length > 0 ? (
                       <Select
                         mode="multiple"
-                        placeholder={t("positions.enterRuleValues", "Enter comma-separated values")}
+                        placeholder={t(
+                          "positions.enterRuleValues",
+                          "Enter comma-separated values",
+                        )}
                         options={selectOptions}
                       />
                     ) : currentRule.operator === "IN" ? (
                       <Select
                         mode="tags"
                         tokenSeparators={[","]}
-                        placeholder={t("positions.enterRuleValues", "Enter comma-separated values")}
+                        placeholder={t(
+                          "positions.enterRuleValues",
+                          "Enter comma-separated values",
+                        )}
                       />
                     ) : (
                       <Input
-                        placeholder={t("positions.enterRuleValue", "Enter value")}
+                        placeholder={t(
+                          "positions.enterRuleValue",
+                          "Enter value",
+                        )}
                       />
                     )}
                   </Form.Item>
@@ -343,7 +413,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       setIsCreateModalOpen(false);
     },
     onError: (error) => {
-      message.error(error.response?.data?.message || t("common.error", "Error"));
+      message.error(
+        error.response?.data?.message || t("common.error", "Error"),
+      );
     },
   });
 
@@ -358,7 +430,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const duplicatePositionMutation = useMutation({
     mutationFn: duplicatePosition,
     onSuccess: async () => {
-      message.success(t("positions.duplicateSuccess", "Position duplicated successfully"));
+      message.success(
+        t("positions.duplicateSuccess", "Position duplicated successfully"),
+      );
       await queryClient.invalidateQueries({ queryKey: positionsQueryKey });
       setSelectedPositionIds([]);
     },
@@ -374,7 +448,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       }
 
       if (error.response?.status === 404) {
-        message.error(t("positions.duplicateNotFound", "Source position was not found."));
+        message.error(
+          t("positions.duplicateNotFound", "Source position was not found."),
+        );
         return;
       }
 
@@ -418,7 +494,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         return;
       }
 
-      message.error(error.response?.data?.message || t("common.error", "Error"));
+      message.error(
+        error.response?.data?.message || t("common.error", "Error"),
+      );
     },
   });
 
@@ -429,14 +507,19 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     },
     onError: (error) => {
       if (error.response?.status === 409) {
-        message.warning(t("positions.cvExists", "CV already exists for this position"));
+        message.warning(
+          t("positions.cvExists", "CV already exists for this position"),
+        );
         return;
       }
 
       if (error.response?.status === 403) {
         message.warning(
           error.response?.data?.message ||
-            t("positions.accessDenied", "You do not have access to this position."),
+            t(
+              "positions.accessDenied",
+              "You do not have access to this position.",
+            ),
         );
         return;
       }
@@ -480,7 +563,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       key: "shortDescription",
       render: (description) =>
         description || (
-          <Text type="secondary">{t("common.noDescription", "No description")}</Text>
+          <Text type="secondary">
+            {t("common.noDescription", "No description")}
+          </Text>
         ),
     },
     {
@@ -554,7 +639,9 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
 
   if (isError) {
     return (
-      <Text type="danger">{t("positions.loadError", "Failed to load positions")}</Text>
+      <Text type="danger">
+        {t("positions.loadError", "Failed to load positions")}
+      </Text>
     );
   }
 
@@ -609,7 +696,11 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     <div className="responsive-page">
       <div className="responsive-page__header responsive-page__header--primary-action">
         <div className="responsive-page__title-group">
-          <Title level={2} className="responsive-page__title" style={{ margin: 0 }}>
+          <Title
+            level={2}
+            className="responsive-page__title"
+            style={{ margin: 0 }}
+          >
             {t("positions.title", "Positions")}
           </Title>
         </div>
@@ -621,99 +712,109 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         ) : null}
       </div>
 
-      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
-          <Text className="responsive-toolbar__meta" type="secondary">
-            {t("common.selected", "Selected")}: {selectedPositionIds.length}
+      <div
+        className="responsive-toolbar responsive-toolbar--actions"
+        style={{ marginBottom: 16 }}
+      >
+        <Text className="responsive-toolbar__meta" type="secondary">
+          {t("common.selected", "Selected")}: {selectedPositionIds.length}
+          <div>{<PositionCount />}</div>
+        </Text>
+
+        {selectedPositionIds.length > 1 ? (
+          <Text className="responsive-toolbar__note" type="warning">
+            {t(
+              "positions.selectOneAction",
+              "Select only one position for toolbar actions",
+            )}
           </Text>
+        ) : null}
 
-          {selectedPositionIds.length > 1 ? (
-            <Text className="responsive-toolbar__note" type="warning">
-              {t("positions.selectOneAction", "Select only one position for toolbar actions")}
-            </Text>
-          ) : null}
+        {showCreateCv ? (
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            loading={createCvMutation.isPending}
+            onClick={() => {
+              if (!selectedPosition) return;
 
-          {showCreateCv ? (
-            <Button
-              disabled={selectedPositionIds.length !== 1}
-              loading={createCvMutation.isPending}
-              onClick={() => {
-                if (!selectedPosition) return;
+              createCvMutation.mutate(selectedPosition.id);
+            }}
+          >
+            {t("positions.createCv", "Create CV")}
+          </Button>
+        ) : null}
 
-                createCvMutation.mutate(selectedPosition.id);
-              }}
-            >
-              {t("positions.createCv", "Create CV")}
-            </Button>
-          ) : null}
-
-          {showViewPublishedCvs ? (
-            <Button
-              disabled={selectedPositionIds.length !== 1}
-              onClick={() => {
-                if (!selectedPosition) return;
-
-                onViewPublishedCvs?.(selectedPosition.id);
-              }}
-            >
-              {t("positions.viewPublishedCvs", "View Published CVs")}
-            </Button>
-          ) : null}
-
+        {showViewPublishedCvs ? (
           <Button
             disabled={selectedPositionIds.length !== 1}
             onClick={() => {
               if (!selectedPosition) return;
 
-              setIsDiscussionOpen(true);
+              onViewPublishedCvs?.(selectedPosition.id);
             }}
           >
-            {t("positions.discussion", "Discussion")}
+            {t("positions.viewPublishedCvs", "View Published CVs")}
           </Button>
+        ) : null}
 
-          {showManagePositions ? (
-            <Button
-              disabled={selectedPositionIds.length !== 1}
-              onClick={openEditModal}
-            >
-              {t("positions.editSelected", "Edit Selected")}
-            </Button>
-          ) : null}
+        <Button
+          disabled={selectedPositionIds.length !== 1}
+          onClick={() => {
+            if (!selectedPosition) return;
 
-          {showManagePositions ? (
-            <Button
-              disabled={selectedPositionIds.length !== 1}
-              loading={duplicatePositionMutation.isPending}
-              onClick={() => {
-                if (!selectedPosition) return;
+            setIsDiscussionOpen(true);
+          }}
+        >
+          {t("positions.discussion", "Discussion")}
+        </Button>
 
-                duplicatePositionMutation.mutate(selectedPosition.id);
-              }}
-            >
-              {t("positions.duplicateSelected", "Duplicate Selected")}
-            </Button>
-          ) : null}
+        {showManagePositions ? (
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            onClick={openEditModal}
+          >
+            {t("positions.editSelected", "Edit Selected")}
+          </Button>
+        ) : null}
 
-          {showManagePositions ? (
-            <Button
-              danger
-              disabled={selectedPositionIds.length === 0}
-              loading={deletePositionsMutation.isPending}
-              onClick={() => {
-                Modal.confirm({
-                  title: t("positions.deleteConfirmTitle", "Delete selected positions?"),
-                  content: t(
-                    "positions.deleteConfirmBody",
-                    "This action will delete selected position templates.",
-                  ),
-                  okText: t("common.delete", "Delete"),
-                  okButtonProps: { danger: true },
-                  onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
-                });
-              }}
-            >
-              {t("positions.deleteSelected", "Delete Selected")}
-            </Button>
-          ) : null}
+        {showManagePositions ? (
+          <Button
+            disabled={selectedPositionIds.length !== 1}
+            loading={duplicatePositionMutation.isPending}
+            onClick={() => {
+              if (!selectedPosition) return;
+
+              duplicatePositionMutation.mutate(selectedPosition.id);
+            }}
+          >
+            {t("positions.duplicateSelected", "Duplicate Selected")}
+          </Button>
+        ) : null}
+
+        {showManagePositions ? (
+          <Button
+            danger
+            disabled={selectedPositionIds.length === 0}
+            loading={deletePositionsMutation.isPending}
+            onClick={() => {
+              Modal.confirm({
+                title: t(
+                  "positions.deleteConfirmTitle",
+                  "Delete selected positions?",
+                ),
+                content: t(
+                  "positions.deleteConfirmBody",
+                  "This action will delete selected position templates.",
+                ),
+                okText: t("common.delete", "Delete"),
+                okButtonProps: { danger: true },
+                onOk: () => deletePositionsMutation.mutate(selectedPositionIds),
+              });
+            }}
+          >
+            {t("positions.deleteSelected", "Delete Selected")}
+          </Button>
+        ) : null}
       </div>
 
       <Table
@@ -822,7 +923,10 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             >
               <Select
                 mode="tags"
-                placeholder={t("positions.projectTagsPlaceholder", "Add project tags")}
+                placeholder={t(
+                  "positions.projectTagsPlaceholder",
+                  "Add project tags",
+                )}
               />
             </Form.Item>
             <Form.Item
@@ -969,7 +1073,10 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             >
               <Select
                 mode="tags"
-                placeholder={t("positions.projectTagsPlaceholder", "Add project tags")}
+                placeholder={t(
+                  "positions.projectTagsPlaceholder",
+                  "Add project tags",
+                )}
               />
             </Form.Item>
             <Form.Item
