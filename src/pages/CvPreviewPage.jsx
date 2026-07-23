@@ -16,6 +16,7 @@ import {
   Tag,
   Typography,
 } from "antd";
+import { HeartFilled } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -518,7 +519,11 @@ export function CvPreviewPage({ cvId, onBack }) {
             <Tag color="default">{t("common.readOnly", "Read-only view")}</Tag>
           )}
           {canLike ? (
-            <Button loading={likeMutation.isPending} onClick={handleLikeToggle}>
+            <Button
+              icon={<HeartFilled style={{ color: "#ef4444" }} />}
+              loading={likeMutation.isPending}
+              onClick={handleLikeToggle}
+            >
               {data?.likedByCurrentUser
                 ? t("cvPreview.unlike", "Unlike")
                 : t("cvPreview.like", "Like")}
