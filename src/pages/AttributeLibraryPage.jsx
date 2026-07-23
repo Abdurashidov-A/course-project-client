@@ -4,6 +4,7 @@ import {
   Form,
   Grid,
   Input,
+  message,
   Modal,
   Select,
   Space,
@@ -76,6 +77,28 @@ export function AttributeLibraryPage({ user }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attributes"] });
       setSelectedAttributeIds([]);
+    },
+    onError: (error) => {
+      if (error.response?.status === 409) {
+        const attributeNames = (error.response?.data?.attributes || [])
+          .map((attribute) => attribute.name)
+          .filter(Boolean);
+        const suffix =
+          attributeNames.length > 0 ? `: ${attributeNames.join(", ")}` : "";
+
+        message.warning(
+          `${t(
+            "attributeLibrary.deleteInUse",
+            "Cannot delete attributes used by positions or access rules",
+          )}${suffix}`,
+        );
+        return;
+      }
+
+      message.error(
+        error.response?.data?.message ||
+          t("attributeLibrary.deleteError", "Failed to delete attributes"),
+      );
     },
   });
 
