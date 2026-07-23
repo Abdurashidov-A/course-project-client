@@ -1,12 +1,7 @@
-import { createContext, useContext, useMemo } from "react";
+import { useMemo } from "react";
 import { useLanguageMode } from "../hooks/useLanguageMode";
 import { DEFAULT_LANGUAGE, translations } from "./translations";
-
-const I18nContext = createContext({
-  language: DEFAULT_LANGUAGE,
-  setLanguage: () => {},
-  t: (key, fallback) => fallback || key,
-});
+import { I18nContext } from "./i18nContext";
 
 function interpolate(template, params) {
   if (!params) {
@@ -44,8 +39,4 @@ export function I18nProvider({ children }) {
   }, [language, setLanguage]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
-}
-
-export function useI18n() {
-  return useContext(I18nContext);
 }

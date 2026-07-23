@@ -12,8 +12,8 @@ import {
   theme,
 } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import { lazy, Suspense, useEffect, useState } from "react";
-import { useAuth } from "./context/AuthContext";
+import { lazy, Suspense, useState } from "react";
+import { useAuth } from "./context/authContext";
 import {
   canManageLibrary,
   canManageUsers,
@@ -22,7 +22,7 @@ import {
 import PagePlaceholder from "./components/PagePlaceholder";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
-import { useI18n } from "./i18n/I18nProvider";
+import { useI18n } from "./i18n/i18nContext";
 
 function lazyNamedPage(importPage, exportName) {
   return lazy(() =>
@@ -205,12 +205,6 @@ export default function App() {
         : effectiveSelectedPageKey;
   const selectedPage =
     menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
-
-  useEffect(() => {
-    if (!isMobileNav || isLoginPage) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [isLoginPage, isMobileNav]);
 
   function handleMenuNavigation(key) {
     setSelectedPageKey(key);

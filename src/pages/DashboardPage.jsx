@@ -26,7 +26,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { getDashboardStats } from "../api/dashboardApi";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Title, Text } = Typography;
 

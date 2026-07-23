@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { getCvById, likeCv, publishCv, unlikeCv } from "../api/cvApi";
 import { saveProfileAttribute } from "../api/profileAttributeApi";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 import { MarkdownText } from "../components/MarkdownText";
 
 const { Title, Text } = Typography;

@@ -1,7 +1,7 @@
 import { Alert, Button, Empty, Grid, Space, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { getPositionCvs } from "../api/cvApi";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 import { MarkdownText } from "../components/MarkdownText";
 
 const { Title } = Typography;

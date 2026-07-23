@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Empty, Grid, Space, Table, Tag, Typography } from "antd";
 import { getPublicPositions } from "../api/publicApi";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Title, Text } = Typography;
 

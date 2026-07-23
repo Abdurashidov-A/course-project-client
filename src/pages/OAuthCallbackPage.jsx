@@ -1,16 +1,14 @@
 import { Alert, Button, Card, Space, Spin, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { completeOAuthLogin } from "../api/authApi";
-import { useAuth } from "../context/AuthContext";
-import { useI18n } from "../i18n/I18nProvider";
+import { useAuth } from "../context/authContext";
+import { useI18n } from "../i18n/i18nContext";
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography; 
 
 export function OAuthCallbackPage() {
   const { setAuthenticatedUser } = useAuth();
   const { t } = useI18n();
-  const [errorMessage, setErrorMessage] = useState("");
-
   const token = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("token") || "";
@@ -20,15 +18,14 @@ export function OAuthCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     return params.get("error") || "";
   }, []);
+  const [errorMessage, setErrorMessage] = useState(
+    () =>
+      callbackError ||
+      (!token ? t("login.oauthFailed", "OAuth login failed") : ""),
+  );
 
   useEffect(() => {
-    if (callbackError) {
-      setErrorMessage(callbackError);
-      return;
-    }
-
-    if (!token) {
-      setErrorMessage(t("login.oauthFailed", "OAuth login failed"));
+    if (callbackError || !token) {
       return;
     }
 

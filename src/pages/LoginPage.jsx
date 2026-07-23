@@ -1,8 +1,8 @@
 import { Button, Card, Divider, Space, Typography, message } from "antd";
 import { GithubOutlined, GoogleOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useI18n } from "../i18n/I18nProvider";
+import { useAuth } from "../context/authContext";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Title, Text } = Typography;
 

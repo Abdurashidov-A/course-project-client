@@ -5,7 +5,6 @@ import {
   Empty,
   Grid,
   Modal,
-  Space,
   Table,
   Tag,
   Typography,
@@ -14,7 +13,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCvs, getMyCvs } from "../api/cvApi";
 import { isCandidate } from "../utils/roles";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Text, Title } = Typography;
 
@@ -31,10 +30,7 @@ export function MyCvsPage({ user, onOpenCv }) {
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-
-  if (!isCandidate(user)) {
-    return <Alert type="warning" message={t("myCvs.noAccess", "You do not have access to this page")} />;
-  }
+  const hasAccess = isCandidate(user);
 
   const {
     data = [],
@@ -43,6 +39,7 @@ export function MyCvsPage({ user, onOpenCv }) {
   } = useQuery({
     queryKey: ["my-cvs"],
     queryFn: getMyCvs,
+    enabled: hasAccess,
   });
 
   const deleteMutation = useMutation({
@@ -106,6 +103,15 @@ export function MyCvsPage({ user, onOpenCv }) {
       render: (likesCount) => likesCount ?? 0,
     },
   ];
+
+  if (!hasAccess) {
+    return (
+      <Alert
+        type="warning"
+        message={t("myCvs.noAccess", "You do not have access to this page")}
+      />
+    );
+  }
 
   if (isError) {
     return <Alert type="error" message={t("myCvs.loadError", "Failed to load CVs")} />;

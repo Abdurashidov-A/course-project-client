@@ -24,7 +24,7 @@ import {
   updateProject,
 } from "../api/projectApi";
 import { isCandidate } from "../utils/roles";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 import { MarkdownText } from "../components/MarkdownText";
 
 const { Title, Text } = Typography;
@@ -75,10 +75,7 @@ export function MyProjectsPage({ user }) {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const queryClient = useQueryClient();
-
-  if (!isCandidate(user)) {
-    return <Alert type="warning" message={t("projects.noAccess", "You do not have access to this page")} />;
-  }
+  const hasAccess = isCandidate(user);
 
   const {
     data: projects = [],
@@ -87,6 +84,7 @@ export function MyProjectsPage({ user }) {
   } = useQuery({
     queryKey: ["my-projects"],
     queryFn: getMyProjects,
+    enabled: hasAccess,
   });
 
   const selectedProject = projects.find(
@@ -194,6 +192,15 @@ export function MyProjectsPage({ user }) {
       width: 100,
     },
   ];
+
+  if (!hasAccess) {
+    return (
+      <Alert
+        type="warning"
+        message={t("projects.noAccess", "You do not have access to this page")}
+      />
+    );
+  }
 
   if (isError) {
     return <Alert type="error" message={t("projects.loadError", "Failed to load projects")} />;

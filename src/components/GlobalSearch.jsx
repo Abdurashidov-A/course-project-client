@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchGlobal } from "../api/searchApi";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Search } = Input;
 const { Text, Title } = Typography;

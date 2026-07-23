@@ -17,7 +17,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { getAttributes } from "../api/attributeApi";
@@ -27,7 +27,7 @@ import {
   saveProfileAttribute,
 } from "../api/profileAttributeApi";
 import { isCandidate } from "../utils/roles";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
 const { Title, Text } = Typography;
@@ -250,15 +250,7 @@ function formatTime(value) {
 export function CandidateProfilePage({ user }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
-
-  if (!isCandidate(user)) {
-    return (
-      <Alert
-        type="warning"
-        message={t("profile.noAccess", "You do not have access to this page")}
-      />
-    );
-  }
+  const hasAccess = isCandidate(user);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
@@ -266,16 +258,14 @@ export function CandidateProfilePage({ user }) {
   const [saveStatus, setSaveStatus] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [saveError, setSaveError] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
 
   const [form] = Form.useForm();
-  const watchedAttributeId = Form.useWatch("attributeId", form);
-  const watchedValue = Form.useWatch("value", form);
   const queryClient = useQueryClient();
   const saveRequestIdRef = useRef(0);
   const baselineRef = useRef("");
   const currentVersionRef = useRef(null);
   const autoSaveBlockedRef = useRef(false);
-  const previousDraftSerializedRef = useRef("");
   const initializedRef = useRef(false);
 
   const {
@@ -285,22 +275,19 @@ export function CandidateProfilePage({ user }) {
   } = useQuery({
     queryKey: ["profile-attributes"],
     queryFn: getProfileAttributes,
+    enabled: hasAccess,
   });
 
   const { data: attributes = [] } = useQuery({
     queryKey: ["attributes"],
     queryFn: () => getAttributes(),
+    enabled: hasAccess,
   });
 
   const selectedAttribute = useMemo(
     () =>
-      attributes.find((attribute) => attribute.id === selectedAttributeId) ||
-      attributes.find((attribute) => attribute.id === watchedAttributeId),
-    [attributes, selectedAttributeId, watchedAttributeId],
-  );
-
-  const existingValue = profileAttributes.find(
-    (item) => item.attributeId === selectedAttribute?.id,
+      attributes.find((attribute) => attribute.id === selectedAttributeId) || null,
+    [attributes, selectedAttributeId],
   );
 
   function upsertProfileAttributeInCache(savedValue) {
@@ -328,7 +315,6 @@ export function CandidateProfilePage({ user }) {
         return;
       }
 
-      cancelAutoSave();
       upsertProfileAttributeInCache(savedValue);
       const normalizedSavedValue = getFormValue(savedValue, selectedAttribute?.type);
       const nextSerialized = serializeValue(
@@ -337,8 +323,8 @@ export function CandidateProfilePage({ user }) {
       );
       currentVersionRef.current = savedValue.version ?? null;
       baselineRef.current = nextSerialized;
-      previousDraftSerializedRef.current = nextSerialized;
       autoSaveBlockedRef.current = false;
+      setIsDirty(false);
       setSaveStatus("saved");
       setLastSavedAt(new Date().toISOString());
       setSaveError("");
@@ -349,7 +335,6 @@ export function CandidateProfilePage({ user }) {
         return;
       }
 
-      cancelAutoSave();
       autoSaveBlockedRef.current = true;
 
       if (error.response?.status === 409) {
@@ -396,7 +381,7 @@ export function CandidateProfilePage({ user }) {
     saveRequestIdRef.current = 0;
     currentVersionRef.current = null;
     autoSaveBlockedRef.current = false;
-    previousDraftSerializedRef.current = "";
+    setIsDirty(false);
     setSaveStatus("idle");
     setLastSavedAt(null);
     setSaveError("");
@@ -425,9 +410,9 @@ export function CandidateProfilePage({ user }) {
     });
 
     baselineRef.current = nextSerialized;
-    previousDraftSerializedRef.current = nextSerialized;
     currentVersionRef.current = nextExistingValue?.version ?? null;
     autoSaveBlockedRef.current = false;
+    setIsDirty(false);
     setSaveStatus(nextExistingValue ? "saved" : "idle");
     setLastSavedAt(nextExistingValue?.updatedAt || null);
     setSaveError("");
@@ -447,9 +432,7 @@ export function CandidateProfilePage({ user }) {
     const currentSerialized = serializeValue(selectedAttribute.type, currentValue);
 
     if (currentSerialized === baselineRef.current) {
-      if (saveStatus === "saved") {
-        cancelAutoSave();
-      }
+      setIsDirty(false);
       return;
     }
 
@@ -473,47 +456,29 @@ export function CandidateProfilePage({ user }) {
   const { schedule: scheduleAutoSave, cancel: cancelAutoSave } =
     useDebouncedCallback(saveCurrentValue, AUTO_SAVE_DELAY_MS);
 
-  useEffect(() => {
-    if (!isModalOpen || !selectedAttribute) {
+  function handleFormValuesChange(changedValues, allValues) {
+    if (
+      !Object.hasOwn(changedValues, "value") ||
+      !isModalOpen ||
+      !selectedAttribute ||
+      !initializedRef.current
+    ) {
       return;
     }
 
-    const nextValue = getFormValue(existingValue, selectedAttribute.type);
-    form.setFieldsValue({
-      attributeId: selectedAttribute.id,
-      value: nextValue,
-    });
-    const initialSerialized = serializeValue(selectedAttribute.type, nextValue);
-    baselineRef.current = initialSerialized;
-    previousDraftSerializedRef.current = initialSerialized;
-    currentVersionRef.current = existingValue?.version ?? null;
-    autoSaveBlockedRef.current = false;
-    initializedRef.current = true;
-    setSaveStatus(existingValue ? "saved" : "idle");
-    setLastSavedAt(existingValue?.updatedAt || null);
-    setSaveError("");
-  }, [existingValue, form, isModalOpen, selectedAttribute]);
-
-  useEffect(() => {
-    if (!isModalOpen || !selectedAttribute || !initializedRef.current) {
-      return;
-    }
-
-    const currentSerialized = serializeValue(selectedAttribute.type, watchedValue);
-    const hasRealUserChange =
-      currentSerialized !== previousDraftSerializedRef.current;
-    previousDraftSerializedRef.current = currentSerialized;
-
-    if (!hasRealUserChange) {
-      return;
-    }
+    const currentSerialized = serializeValue(
+      selectedAttribute.type,
+      allValues.value,
+    );
+    const nextIsDirty = currentSerialized !== baselineRef.current;
+    setIsDirty(nextIsDirty);
 
     if (saveStatus === "error") {
       autoSaveBlockedRef.current = false;
       setSaveError("");
     }
 
-    if (currentSerialized === baselineRef.current) {
+    if (!nextIsDirty) {
       if (saveStatus !== "saved") {
         setSaveStatus("idle");
       }
@@ -528,16 +493,7 @@ export function CandidateProfilePage({ user }) {
     setSaveStatus("unsaved");
     cancelAutoSave();
     scheduleAutoSave();
-  }, [
-    cancelAutoSave,
-    isModalOpen,
-    saveMutation.isPending,
-    scheduleAutoSave,
-    selectedAttribute,
-    watchedValue,
-  ]);
-
-  useEffect(() => () => cancelAutoSave(), [cancelAutoSave]);
+  }
 
   function openModal() {
     form.resetFields();
@@ -625,13 +581,6 @@ export function CandidateProfilePage({ user }) {
       <Tag color="red">{t("profile.errorSaving", "Error saving")}</Tag>
     ) : null;
 
-  const currentSerialized = selectedAttribute
-    ? serializeValue(selectedAttribute.type, watchedValue)
-    : "";
-  const isDirty =
-    Boolean(selectedAttribute) &&
-    initializedRef.current &&
-    currentSerialized !== baselineRef.current;
   const modalOkText = saveMutation.isPending
     ? t("profile.saving", "Saving...")
     : saveStatus === "saved" && !isDirty
@@ -639,6 +588,15 @@ export function CandidateProfilePage({ user }) {
       : !isDirty
         ? t("common.close", "Close")
         : t("profile.saveNow", "Save now");
+
+  if (!hasAccess) {
+    return (
+      <Alert
+        type="warning"
+        message={t("profile.noAccess", "You do not have access to this page")}
+      />
+    );
+  }
 
   return (
     <Card className="responsive-page-card">
@@ -732,7 +690,13 @@ export function CandidateProfilePage({ user }) {
         destroyOnHidden
         width={screens.md ? 720 : "calc(100vw - 24px)"}
       >
-        <Form className="responsive-form" form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form
+          className="responsive-form"
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          onValuesChange={handleFormValuesChange}
+        >
           <Form.Item
             label={t("profile.attribute", "Attribute")}
             name="attributeId"

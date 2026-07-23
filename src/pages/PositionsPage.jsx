@@ -33,7 +33,7 @@ import {
   canViewPublishedCvs,
 } from "../utils/roles";
 import { PositionDiscussion } from "../components/PositionDiscussion";
-import { useI18n } from "../i18n/I18nProvider";
+import { useI18n } from "../i18n/i18nContext";
 
 const { Title, Text } = Typography;
 
@@ -313,10 +313,17 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
-  const selectedCreateAttributeIds = Form.useWatch("attributeIds", form) || [];
+  const watchedCreateAttributeIds = Form.useWatch("attributeIds", form);
+  const selectedCreateAttributeIds = useMemo(
+    () => watchedCreateAttributeIds || [],
+    [watchedCreateAttributeIds],
+  );
   const [editForm] = Form.useForm();
-  const selectedEditAttributeIds =
-    Form.useWatch("attributeIds", editForm) || [];
+  const watchedEditAttributeIds = Form.useWatch("attributeIds", editForm);
+  const selectedEditAttributeIds = useMemo(
+    () => watchedEditAttributeIds || [],
+    [watchedEditAttributeIds],
+  );
   const queryClient = useQueryClient();
   const positionsQueryKey = ["positions", user?.id || "guest"];
 

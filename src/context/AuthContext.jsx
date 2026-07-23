@@ -1,7 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { useState } from "react";
 import { devLogin } from "../api/authApi";
-
-const AuthContext = createContext(null);
+import { AuthContext } from "./authContext";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -44,8 +43,4 @@ export function AuthProvider({ children }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }
