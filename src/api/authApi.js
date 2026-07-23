@@ -8,6 +8,15 @@ export async function devLogin(email) {
   return response.data?.user;
 }
 
+export async function testLogin({ login, password }) {
+  const response = await api.post("/api/auth/test-login", {
+    login,
+    password,
+  });
+
+  return response.data?.user;
+}
+
 export async function completeOAuthLogin(token) {
   const response = await api.post("/api/auth/oauth/complete", {
     token,

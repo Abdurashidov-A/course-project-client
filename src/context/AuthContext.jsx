@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { devLogin } from "../api/authApi";
+import { devLogin, testLogin } from "../api/authApi";
 import { AuthContext } from "./authContext";
 
 export function AuthProvider({ children }) {
@@ -29,6 +29,11 @@ export function AuthProvider({ children }) {
     return setAuthenticatedUser(loggedUser);
   }
 
+  async function loginWithTestCredentials(login, password) {
+    const loggedUser = await testLogin({ login, password });
+    return setAuthenticatedUser(loggedUser);
+  }
+
   function logout() {
     setUser(null);
     localStorage.removeItem("cvms_user");
@@ -38,6 +43,7 @@ export function AuthProvider({ children }) {
     user,
     isAuthenticated: Boolean(user),
     login,
+    loginWithTestCredentials,
     logout,
     setAuthenticatedUser,
   };
