@@ -19,3 +19,11 @@ export async function updateAdminUserStatus(userId, payload) {
 
   return response.data;
 }
+
+export async function deleteUsers(ids) {
+  const response = await api.delete("/api/admin/users", {
+    data: { ids },
+  });
+
+  return response.data;
+}

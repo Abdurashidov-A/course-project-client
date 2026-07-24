@@ -15,10 +15,12 @@ import {
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  deleteUsers,
   getAdminUsers,
   updateAdminUserRole,
   updateAdminUserStatus,
 } from "../api/adminUserApi";
+import { useAuth } from "../context/authContext";
 import { isAdmin } from "../utils/roles";
 import { useI18n } from "../i18n/i18nContext";
 
@@ -34,6 +36,7 @@ function formatDate(value) {
 
 export function AdminUsersPage({ user }) {
   const { t } = useI18n();
+  const { logout } = useAuth();
   const screens = Grid.useBreakpoint();
   const queryClient = useQueryClient();
   const canAccess = isAdmin(user);
@@ -45,14 +48,18 @@ export function AdminUsersPage({ user }) {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [nextRole, setNextRole] = useState();
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["admin-users", searchValue, roleFilter, statusFilter, page, pageSize],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [
+      "admin-users",
+      searchValue,
+      roleFilter,
+      statusFilter,
+      page,
+      pageSize,
+    ],
     queryFn: () =>
       getAdminUsers({
         q: searchValue || undefined,
@@ -65,7 +72,8 @@ export function AdminUsersPage({ user }) {
   });
 
   const users = data?.items || [];
-  const selectedUser = users.find((item) => item.id === selectedRowKeys[0]) || null;
+  const selectedUser =
+    users.find((item) => item.id === selectedRowKeys[0]) || null;
 
   const roleMutation = useMutation({
     mutationFn: ({ userId, payload }) => updateAdminUserRole(userId, payload),
@@ -121,15 +129,44 @@ export function AdminUsersPage({ user }) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteUsers,
+    onSuccess: (result) => {
+      setIsDeleteModalOpen(false);
+      setSelectedRowKeys([]);
+
+      if (result.deletedCurrentUser) {
+        queryClient.removeQueries({ queryKey: ["admin-users"] });
+        message.success(
+          t(
+            "adminUsers.selfDeleted",
+            "Your account was deleted. You have been logged out.",
+          ),
+        );
+        logout();
+        return;
+      }
+
+      message.success(
+        t("adminUsers.deletedSuccessfully", "Users deleted successfully"),
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error) => {
+      message.error(
+        error.response?.data?.message ||
+          t("adminUsers.deleteFailed", "Failed to delete users"),
+      );
+    },
+  });
+
   const canChangeSelectedRole =
     selectedRowKeys.length === 1 &&
     selectedUser &&
     !(selectedUser.id === user.id && selectedUser.role === "ADMIN");
 
   const canChangeSelectedStatus =
-    selectedRowKeys.length === 1 &&
-    selectedUser &&
-    selectedUser.id !== user.id;
+    selectedRowKeys.length === 1 && selectedUser && selectedUser.id !== user.id;
 
   const columns = useMemo(
     () => [
@@ -178,18 +215,32 @@ export function AdminUsersPage({ user }) {
   );
 
   if (!canAccess) {
-    return <Alert type="error" message={t("adminUsers.accessDenied", "Access denied")} />;
+    return (
+      <Alert
+        type="error"
+        message={t("adminUsers.accessDenied", "Access denied")}
+      />
+    );
   }
 
   if (isError) {
-    return <Alert type="error" message={t("adminUsers.loadError", "Failed to load users")} />;
+    return (
+      <Alert
+        type="error"
+        message={t("adminUsers.loadError", "Failed to load users")}
+      />
+    );
   }
 
   return (
     <div className="responsive-page">
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <div className="responsive-page__title-group">
-          <Title level={2} className="responsive-page__title" style={{ marginBottom: 8 }}>
+          <Title
+            level={2}
+            className="responsive-page__title"
+            style={{ marginBottom: 8 }}
+          >
             {t("adminUsers.title", "Admin Users")}
           </Title>
           <Text className="responsive-page__subtitle" type="secondary">
@@ -282,7 +333,8 @@ export function AdminUsersPage({ user }) {
               statusMutation.mutate({
                 userId: selectedUser.id,
                 payload: {
-                  status: selectedUser.status === "ACTIVE" ? "BLOCKED" : "ACTIVE",
+                  status:
+                    selectedUser.status === "ACTIVE" ? "BLOCKED" : "ACTIVE",
                   version: selectedUser.version,
                 },
               });
@@ -291,6 +343,14 @@ export function AdminUsersPage({ user }) {
             {selectedUser?.status === "ACTIVE"
               ? t("adminUsers.block", "Block")
               : t("adminUsers.activate", "Activate")}
+          </Button>
+          <Button
+            danger
+            disabled={selectedRowKeys.length === 0}
+            loading={deleteMutation.isPending}
+            onClick={() => setIsDeleteModalOpen(true)}
+          >
+            {t("adminUsers.deleteSelected", "Delete Selected")}
           </Button>
         </div>
 
@@ -316,9 +376,40 @@ export function AdminUsersPage({ user }) {
             },
           }}
           locale={{
-            emptyText: <Empty description={t("adminUsers.noUsers", "No users found")} />,
+            emptyText: (
+              <Empty description={t("adminUsers.noUsers", "No users found")} />
+            ),
           }}
         />
+
+        <Modal
+          className="responsive-modal"
+          title={t("adminUsers.deleteConfirmTitle", "Delete selected users?")}
+          open={isDeleteModalOpen}
+          onCancel={() => setIsDeleteModalOpen(false)}
+          onOk={() => deleteMutation.mutate(selectedRowKeys)}
+          okText={t("adminUsers.deleteSelected", "Delete Selected")}
+          cancelText={t("common.cancel", "Cancel")}
+          okButtonProps={{ danger: true }}
+          confirmLoading={deleteMutation.isPending}
+          width={screens.sm ? 480 : "calc(100vw - 24px)"}
+        >
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <Text>
+              {t("adminUsers.deleteWarning", "This action cannot be undone.")}
+            </Text>
+            {selectedRowKeys.includes(user.id) ? (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(
+                  "adminUsers.selfDeleteWarning",
+                  "You selected your own account. After deletion you will be logged out.",
+                )}
+              />
+            ) : null}
+          </Space>
+        </Modal>
 
         <Modal
           className="responsive-modal"
@@ -358,8 +449,14 @@ export function AdminUsersPage({ user }) {
               value={nextRole}
               onChange={setNextRole}
               options={[
-                { label: t("roles.candidate", "Candidate"), value: "CANDIDATE" },
-                { label: t("roles.recruiter", "Recruiter"), value: "RECRUITER" },
+                {
+                  label: t("roles.candidate", "Candidate"),
+                  value: "CANDIDATE",
+                },
+                {
+                  label: t("roles.recruiter", "Recruiter"),
+                  value: "RECRUITER",
+                },
                 { label: t("roles.admin", "Admin"), value: "ADMIN" },
               ]}
             />
