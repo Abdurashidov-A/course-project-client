@@ -356,6 +356,11 @@ select {
   overflow-wrap: anywhere;
 }
 
+.positions-table__max-projects.ant-table-cell {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
 .responsive-table .ant-table-pagination {
   row-gap: 8px;
 }

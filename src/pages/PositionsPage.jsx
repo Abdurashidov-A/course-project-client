@@ -506,6 +506,8 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
       title: t("positions.maxProjects", "Max Projects"),
       dataIndex: "maxProjects",
       key: "maxProjects",
+      className: "positions-table__max-projects",
+      width: 140,
     },
     {
       title: t("positions.projectTags", "Project Tags"),

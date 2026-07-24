@@ -44,6 +44,7 @@ export function PublicPositionsPage({ onOpenLogin }) {
       title: t("positions.maxProjects", "Max Projects"),
       dataIndex: "maxProjects",
       key: "maxProjects",
+      className: "positions-table__max-projects",
       width: 140,
     },
   ];
