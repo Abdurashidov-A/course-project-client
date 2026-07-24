@@ -10,6 +10,7 @@ import {
 } from "antd";
 import { GithubOutlined, GoogleOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import { useI18n } from "../i18n/i18nContext";
 
@@ -18,6 +19,7 @@ const { Title } = Typography;
 export default function LoginPage({ embedded = false }) {
   const { loginWithTestCredentials } = useAuth();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loadingAction, setLoadingAction] = useState(null);
   const apiBaseUrl =
@@ -34,6 +36,7 @@ export default function LoginPage({ embedded = false }) {
     try {
       await loginWithTestCredentials(values.login, values.password);
       message.success(t("login.success", "Logged in successfully"));
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       if (error.response?.status === 401) {
         message.error(

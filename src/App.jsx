@@ -12,12 +12,16 @@ import {
   theme,
 } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/authContext";
 import {
   canManageLibrary,
   canManageUsers,
+  canViewPublishedCvs,
+  isAdmin,
   isCandidate,
+  isRecruiter,
 } from "./utils/roles";
 import PagePlaceholder from "./components/PagePlaceholder";
 import { GlobalSearch } from "./components/GlobalSearch";
@@ -82,6 +86,153 @@ const PublicPositionsPage = lazyNamedPage(
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+
+const PAGE_PATHS = {
+  "admin-users": "/admin/users",
+  "attribute-library": "/attribute-library",
+  dashboard: "/dashboard",
+  login: "/login",
+  "my-cvs": "/my-cvs",
+  "my-profile": "/my-profile",
+  "my-projects": "/my-projects",
+  positions: "/positions",
+};
+
+function decodePathSegment(segment) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+}
+
+function getRouteState(pathname, search) {
+  if (pathname === "/oauth/callback") {
+    return { pageKey: "oauth-callback" };
+  }
+
+  const positionCvsMatch = pathname.match(
+    /^\/positions\/([^/]+)\/cvs\/?$/,
+  );
+
+  if (positionCvsMatch) {
+    return {
+      pageKey: "position-cvs",
+      positionId: decodePathSegment(positionCvsMatch[1]),
+    };
+  }
+
+  const cvPreviewMatch = pathname.match(/^\/cvs\/([^/]+)\/?$/);
+
+  if (cvPreviewMatch) {
+    const searchParams = new URLSearchParams(search);
+    const previewSource =
+      searchParams.get("from") === "position-cvs"
+        ? "position-cvs"
+        : "my-cvs";
+
+    return {
+      pageKey: "cv-preview",
+      cvId: decodePathSegment(cvPreviewMatch[1]),
+      cvPreviewSource: previewSource,
+      positionId:
+        previewSource === "position-cvs"
+          ? searchParams.get("positionId")
+          : null,
+    };
+  }
+
+  if (pathname === "/" || pathname === "/dashboard") {
+    return { pageKey: "dashboard" };
+  }
+
+  return {
+    pageKey:
+      Object.entries(PAGE_PATHS).find(([, path]) => path === pathname)?.[0] ||
+      "dashboard",
+    isUnknown: !Object.values(PAGE_PATHS).includes(pathname),
+  };
+}
+
+function getPagePath(pageKey, isGuest) {
+  if (pageKey === "dashboard" && isGuest) {
+    return "/";
+  }
+
+  return PAGE_PATHS[pageKey] || "/";
+}
+
+function getPositionCvsPath(positionId) {
+  return `/positions/${encodeURIComponent(positionId)}/cvs`;
+}
+
+function getCvPreviewPath(cvId, source, positionId = null) {
+  const searchParams = new URLSearchParams({
+    from: source === "position-cvs" ? "position-cvs" : "my-cvs",
+  });
+
+  if (source === "position-cvs" && positionId) {
+    searchParams.set("positionId", positionId);
+  }
+
+  return `/cvs/${encodeURIComponent(cvId)}?${searchParams.toString()}`;
+}
+
+function getRouteRedirect(routeState, user, isAuthenticated) {
+  if (routeState.pageKey === "oauth-callback") {
+    return null;
+  }
+
+  if (routeState.isUnknown) {
+    return isAuthenticated ? PAGE_PATHS.dashboard : "/";
+  }
+
+  if (!isAuthenticated) {
+    return ["dashboard", "positions", "login"].includes(routeState.pageKey)
+      ? null
+      : PAGE_PATHS.login;
+  }
+
+  if (routeState.pageKey === "login") {
+    return PAGE_PATHS.dashboard;
+  }
+
+  if (
+    ["my-profile", "my-cvs", "my-projects"].includes(routeState.pageKey) &&
+    !isCandidate(user)
+  ) {
+    return PAGE_PATHS.dashboard;
+  }
+
+  if (
+    routeState.pageKey === "attribute-library" &&
+    !canManageLibrary(user)
+  ) {
+    return PAGE_PATHS.dashboard;
+  }
+
+  if (routeState.pageKey === "admin-users" && !canManageUsers(user)) {
+    return PAGE_PATHS.dashboard;
+  }
+
+  if (
+    routeState.pageKey === "position-cvs" &&
+    !canViewPublishedCvs(user)
+  ) {
+    return PAGE_PATHS.positions;
+  }
+
+  if (
+    routeState.pageKey === "cv-preview" &&
+    !isCandidate(user) &&
+    !isRecruiter(user) &&
+    !isAdmin(user)
+  ) {
+    return PAGE_PATHS.dashboard;
+  }
+
+  return null;
+}
 
 function PageLoading({ fullPage = false }) {
   return (
@@ -182,18 +333,31 @@ export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const { themeMode, isDarkMode, setThemeMode } = useThemeMode();
   const { language, setLanguage, t } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   const isMobileNav = !screens.lg && !!screens.xs;
-  const [selectedPageKey, setSelectedPageKey] = useState("dashboard");
-  const [selectedCvId, setSelectedCvId] = useState(null);
-  const [selectedPositionId, setSelectedPositionId] = useState(null);
-  const [cvPreviewSource, setCvPreviewSource] = useState("my-cvs");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isOAuthCallbackPath = window.location.pathname === "/oauth/callback";
+  const routeState = getRouteState(location.pathname, location.search);
+  const selectedPageKey = routeState.pageKey;
+  const selectedCvId = routeState.cvId;
+  const selectedPositionId = routeState.positionId;
+  const isOAuthCallbackPath = location.pathname === "/oauth/callback";
   const menuItems = getMenuItems(user, t);
   const isGuest = !isAuthenticated;
-  const effectiveSelectedPageKey =
-    !isGuest && selectedPageKey === "login" ? "dashboard" : selectedPageKey;
+  const routeRedirectPath = getRouteRedirect(
+    routeState,
+    user,
+    isAuthenticated,
+  );
+  const cvPreviewSource =
+    routeState.cvPreviewSource === "position-cvs" &&
+    canViewPublishedCvs(user)
+      ? "position-cvs"
+      : isCandidate(user)
+        ? "my-cvs"
+        : "positions";
+  const effectiveSelectedPageKey = selectedPageKey;
   const isLoginPage = isGuest && effectiveSelectedPageKey === "login";
   const menuSelectedKey =
     effectiveSelectedPageKey === "cv-preview"
@@ -206,17 +370,14 @@ export default function App() {
   const selectedPage =
     menuItems.find((item) => item.key === menuSelectedKey) || menuItems[0];
 
+  useEffect(() => {
+    if (routeRedirectPath) {
+      navigate(routeRedirectPath, { replace: true });
+    }
+  }, [navigate, routeRedirectPath]);
+
   function handleMenuNavigation(key) {
-    setSelectedPageKey(key);
-
-    if (key !== "cv-preview") {
-      setSelectedCvId(null);
-    }
-
-    if (key !== "position-cvs" && key !== "cv-preview") {
-      setSelectedPositionId(null);
-    }
-
+    navigate(getPagePath(key, isGuest));
     setIsMobileMenuOpen(false);
   }
 
@@ -249,7 +410,9 @@ export default function App() {
       }}
     >
       <div className={`app-shell app-theme-${themeMode}`}>
-        {isOAuthCallbackPath ? (
+        {routeRedirectPath ? (
+          <PageLoading fullPage />
+        ) : isOAuthCallbackPath ? (
           <Suspense fallback={<PageLoading fullPage />}>
             <OAuthCallbackPage />
           </Suspense>
@@ -313,10 +476,7 @@ export default function App() {
                     onClick={() => {
                       logout();
                       setIsMobileMenuOpen(false);
-                      setSelectedPageKey("dashboard");
-                      setSelectedCvId(null);
-                      setSelectedPositionId(null);
-                      setCvPreviewSource("my-cvs");
+                      navigate("/", { replace: true });
                     }}
                   >
                     {t("header.logout", "Logout")}
@@ -363,7 +523,7 @@ export default function App() {
                   {isGuest ? (
                     effectiveSelectedPageKey === "positions" ? (
                       <PublicPositionsPage
-                        onOpenLogin={() => setSelectedPageKey("login")}
+                        onOpenLogin={() => navigate(PAGE_PATHS.login)}
                       />
                     ) : effectiveSelectedPageKey === "login" ? (
                       <LoginPage embedded />
@@ -378,8 +538,7 @@ export default function App() {
                     <PositionsPage
                       user={user}
                       onViewPublishedCvs={(positionId) => {
-                        setSelectedPositionId(positionId);
-                        setSelectedPageKey("position-cvs");
+                        navigate(getPositionCvsPath(positionId));
                       }}
                     />
                   ) : effectiveSelectedPageKey === "my-profile" ? (
@@ -388,9 +547,7 @@ export default function App() {
                     <MyCvsPage
                       user={user}
                       onOpenCv={(cvId) => {
-                        setSelectedCvId(cvId);
-                        setCvPreviewSource("my-cvs");
-                        setSelectedPageKey("cv-preview");
+                        navigate(getCvPreviewPath(cvId, "my-cvs"));
                       }}
                     />
                   ) : effectiveSelectedPageKey === "my-projects" ? (
@@ -400,12 +557,16 @@ export default function App() {
                       user={user}
                       positionId={selectedPositionId}
                       onBack={() => {
-                        setSelectedPageKey("positions");
+                        navigate(PAGE_PATHS.positions);
                       }}
                       onOpenCv={(cvId) => {
-                        setSelectedCvId(cvId);
-                        setCvPreviewSource("position-cvs");
-                        setSelectedPageKey("cv-preview");
+                        navigate(
+                          getCvPreviewPath(
+                            cvId,
+                            "position-cvs",
+                            selectedPositionId,
+                          ),
+                        );
                       }}
                     />
                   ) : effectiveSelectedPageKey === "admin-users" ? (
@@ -414,7 +575,19 @@ export default function App() {
                     <CvPreviewPage
                       cvId={selectedCvId}
                       onBack={() => {
-                        setSelectedPageKey(cvPreviewSource);
+                        if (
+                          cvPreviewSource === "position-cvs" &&
+                          selectedPositionId
+                        ) {
+                          navigate(getPositionCvsPath(selectedPositionId));
+                          return;
+                        }
+
+                        navigate(
+                          isCandidate(user)
+                            ? PAGE_PATHS["my-cvs"]
+                            : PAGE_PATHS.positions,
+                        );
                       }}
                     />
                   ) : (
