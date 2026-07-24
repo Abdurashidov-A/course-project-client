@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPositionCounts } from "../api/positionApi";
+import { getPositionCounts, getPositionTitle } from "../api/positionApi";
 
 const PositionCount = () => {
   const data = useQuery({
@@ -7,8 +7,21 @@ const PositionCount = () => {
     queryFn: getPositionCounts,
   });
 
+  const title = useQuery({
+    queryKey: ["position-title"],
+    queryFn: getPositionTitle,
+  });
+
   const count = data?.data?.count ?? 0;
-  return <div>Total positions: {count}</div>;
+  const titles = title?.data?.title.map((item) => item.title).join(", ") ?? "";
+
+  console.log("titles", titles);
+  return (
+    <>
+      <div>Total positions: {count}</div>
+      <div>Position titles: {titles}</div>
+    </>
+  );
 };
 
 export default PositionCount;

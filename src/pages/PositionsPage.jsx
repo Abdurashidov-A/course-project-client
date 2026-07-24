@@ -23,6 +23,7 @@ import {
   duplicatePosition,
   getPositions,
   updatePosition,
+  searchPositions,
 } from "../api/positionApi";
 import { createCv } from "../api/cvApi";
 import { getAttributes } from "../api/attributeApi";
@@ -381,6 +382,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
+  const [query, setQuery] = useState("");
 
   const [form] = Form.useForm();
   const watchedCreateAttributeIds = Form.useWatch("attributeIds", form);
@@ -536,6 +538,13 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     queryKey: positionsQueryKey,
     queryFn: getPositions,
   });
+
+  const searchValue = useQuery({
+    queryKey: ["positions-search", query],
+    queryFn: () => searchPositions(query),
+  });
+
+  console.log("searchValue", searchValue);
 
   const selectedPosition = data.find(
     (position) => position.id === selectedPositionIds[0],
@@ -815,6 +824,10 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             {t("positions.deleteSelected", "Delete Selected")}
           </Button>
         ) : null}
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
       </div>
 
       <Table

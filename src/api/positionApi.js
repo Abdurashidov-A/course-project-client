@@ -12,6 +12,22 @@ export async function getPositionCounts() {
   return response.data;
 }
 
+export async function getPositionTitle() {
+  const response = await api.get("/api/positions/title");
+
+  return response.data;
+}
+
+export async function searchPositions(query) {
+  const response = await api.get("/api/positions/search", {
+    params: {
+      q: query,
+    },
+  });
+
+  return response.data;
+}
+
 export async function createPosition(positionData) {
   const response = await api.post("/api/positions", positionData);
 
