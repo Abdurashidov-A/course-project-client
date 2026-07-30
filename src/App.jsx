@@ -51,10 +51,7 @@ const CandidateProfilePage = lazyNamedPage(
   () => import("./pages/CandidateProfilePage"),
   "CandidateProfilePage",
 );
-const MyCvsPage = lazyNamedPage(
-  () => import("./pages/MyCvsPage"),
-  "MyCvsPage",
-);
+const MyCvsPage = lazyNamedPage(() => import("./pages/MyCvsPage"), "MyCvsPage");
 const MyProjectsPage = lazyNamedPage(
   () => import("./pages/MyProjectsPage"),
   "MyProjectsPage",
@@ -111,9 +108,7 @@ function getRouteState(pathname, search) {
     return { pageKey: "oauth-callback" };
   }
 
-  const positionCvsMatch = pathname.match(
-    /^\/positions\/([^/]+)\/cvs\/?$/,
-  );
+  const positionCvsMatch = pathname.match(/^\/positions\/([^/]+)\/cvs\/?$/);
 
   if (positionCvsMatch) {
     return {
@@ -127,9 +122,7 @@ function getRouteState(pathname, search) {
   if (cvPreviewMatch) {
     const searchParams = new URLSearchParams(search);
     const previewSource =
-      searchParams.get("from") === "position-cvs"
-        ? "position-cvs"
-        : "my-cvs";
+      searchParams.get("from") === "position-cvs" ? "position-cvs" : "my-cvs";
 
     return {
       pageKey: "cv-preview",
@@ -198,16 +191,13 @@ function getRouteRedirect(routeState, user, isAuthenticated) {
   }
 
   if (
-    ["my-profile", "my-cvs", "my-projects"].includes(routeState.pageKey) &&
+    ["my-cvs", "my-projects"].includes(routeState.pageKey) &&
     !isCandidate(user)
   ) {
     return PAGE_PATHS.dashboard;
   }
 
-  if (
-    routeState.pageKey === "attribute-library" &&
-    !canManageLibrary(user)
-  ) {
+  if (routeState.pageKey === "attribute-library" && !canManageLibrary(user)) {
     return PAGE_PATHS.dashboard;
   }
 
@@ -215,10 +205,7 @@ function getRouteRedirect(routeState, user, isAuthenticated) {
     return PAGE_PATHS.dashboard;
   }
 
-  if (
-    routeState.pageKey === "position-cvs" &&
-    !canViewPublishedCvs(user)
-  ) {
+  if (routeState.pageKey === "position-cvs" && !canViewPublishedCvs(user)) {
     return PAGE_PATHS.positions;
   }
 
@@ -281,16 +268,15 @@ function getMenuItems(user, t) {
       title: t("nav.positions", "Positions"),
       description: "Table view of available positions.",
     },
+    {
+      key: "my-profile",
+      label: t("nav.myProfile", "My Profile"),
+      title: t("nav.myProfile", "My Profile"),
+      description: "Personal profile with attributes and Salesforce export.",
+    },
   ];
-
   if (isCandidate(user)) {
     items.push(
-      {
-        key: "my-profile",
-        label: t("nav.myProfile", "My Profile"),
-        title: t("nav.myProfile", "My Profile"),
-        description: "Candidate personal profile with attributes and projects.",
-      },
       {
         key: "my-cvs",
         label: t("nav.myCvs", "My CVs"),
@@ -307,14 +293,12 @@ function getMenuItems(user, t) {
   }
 
   if (canManageLibrary(user)) {
-    items.push(
-      {
-        key: "attribute-library",
-        label: t("nav.attributeLibrary", "Attribute Library"),
-        title: t("nav.attributeLibrary", "Attribute Library"),
-        description: "Reusable attributes managed by recruiters.",
-      },
-    );
+    items.push({
+      key: "attribute-library",
+      label: t("nav.attributeLibrary", "Attribute Library"),
+      title: t("nav.attributeLibrary", "Attribute Library"),
+      description: "Reusable attributes managed by recruiters.",
+    });
   }
 
   if (canManageUsers(user)) {
@@ -345,14 +329,9 @@ export default function App() {
   const isOAuthCallbackPath = location.pathname === "/oauth/callback";
   const menuItems = getMenuItems(user, t);
   const isGuest = !isAuthenticated;
-  const routeRedirectPath = getRouteRedirect(
-    routeState,
-    user,
-    isAuthenticated,
-  );
+  const routeRedirectPath = getRouteRedirect(routeState, user, isAuthenticated);
   const cvPreviewSource =
-    routeState.cvPreviewSource === "position-cvs" &&
-    canViewPublishedCvs(user)
+    routeState.cvPreviewSource === "position-cvs" && canViewPublishedCvs(user)
       ? "position-cvs"
       : isCandidate(user)
         ? "my-cvs"
@@ -429,7 +408,9 @@ export default function App() {
                     onClick={() => setIsMobileMenuOpen(true)}
                   />
                 ) : null}
-                <div className="app-brand">{t("app.title", "CV Management System")}</div>
+                <div className="app-brand">
+                  {t("app.title", "CV Management System")}
+                </div>
               </div>
 
               {!isLoginPage ? (
@@ -440,7 +421,9 @@ export default function App() {
 
               <div className="app-header__controls">
                 <div className="app-header__control-group">
-                  <Text className="app-header-text">{t("header.theme", "Theme")}</Text>
+                  <Text className="app-header-text">
+                    {t("header.theme", "Theme")}
+                  </Text>
                   <Switch
                     checked={isDarkMode}
                     checkedChildren={t("theme.dark", "Dark")}

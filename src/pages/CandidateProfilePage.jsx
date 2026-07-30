@@ -26,7 +26,7 @@ import {
   getProfileAttributes,
   saveProfileAttribute,
 } from "../api/profileAttributeApi";
-import { isCandidate } from "../utils/roles";
+import { SalesforceExportModal } from "../components/SalesforceExportModal";
 import { useI18n } from "../i18n/i18nContext";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
@@ -230,7 +230,9 @@ function serializeValue(attributeType, value) {
   }
 
   if (attributeType === "NUMERIC") {
-    return value === undefined || value === null || value === "" ? "" : String(value);
+    return value === undefined || value === null || value === ""
+      ? ""
+      : String(value);
   }
 
   return value ?? "";
@@ -250,9 +252,10 @@ function formatTime(value) {
 export function CandidateProfilePage({ user }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
-  const hasAccess = isCandidate(user);
+  const hasAccess = Boolean(user?.id);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSalesforceModalOpen, setIsSalesforceModalOpen] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -286,7 +289,8 @@ export function CandidateProfilePage({ user }) {
 
   const selectedAttribute = useMemo(
     () =>
-      attributes.find((attribute) => attribute.id === selectedAttributeId) || null,
+      attributes.find((attribute) => attribute.id === selectedAttributeId) ||
+      null,
     [attributes, selectedAttributeId],
   );
 
@@ -316,7 +320,10 @@ export function CandidateProfilePage({ user }) {
       }
 
       upsertProfileAttributeInCache(savedValue);
-      const normalizedSavedValue = getFormValue(savedValue, selectedAttribute?.type);
+      const normalizedSavedValue = getFormValue(
+        savedValue,
+        selectedAttribute?.type,
+      );
       const nextSerialized = serializeValue(
         selectedAttribute?.type,
         normalizedSavedValue,
@@ -346,7 +353,9 @@ export function CandidateProfilePage({ user }) {
         message.error(conflictMessage);
         queryClient.invalidateQueries({ queryKey: ["profile-attributes"] });
       } else {
-        setSaveError(t("profile.saveError", "Failed to save profile attribute"));
+        setSaveError(
+          t("profile.saveError", "Failed to save profile attribute"),
+        );
         message.error(
           t("profile.saveError", "Failed to save profile attribute"),
         );
@@ -367,10 +376,7 @@ export function CandidateProfilePage({ user }) {
     },
     onError: () => {
       message.error(
-        t(
-          "profile.deleteError",
-          "Failed to delete profile attribute value",
-        ),
+        t("profile.deleteError", "Failed to delete profile attribute value"),
       );
     },
   });
@@ -429,7 +435,10 @@ export function CandidateProfilePage({ user }) {
     }
 
     const currentValue = form.getFieldValue("value");
-    const currentSerialized = serializeValue(selectedAttribute.type, currentValue);
+    const currentSerialized = serializeValue(
+      selectedAttribute.type,
+      currentValue,
+    );
 
     if (currentSerialized === baselineRef.current) {
       setIsDirty(false);
@@ -602,7 +611,11 @@ export function CandidateProfilePage({ user }) {
     <Card className="responsive-page-card">
       <div className="responsive-page__header responsive-page__header--primary-action">
         <div className="responsive-page__title-group">
-          <Title level={3} className="responsive-page__title" style={{ marginBottom: 4 }}>
+          <Title
+            level={3}
+            className="responsive-page__title"
+            style={{ marginBottom: 4 }}
+          >
             {t("profile.title", "My Profile Attributes")}
           </Title>
 
@@ -617,20 +630,26 @@ export function CandidateProfilePage({ user }) {
               {t("profile.autoSaveEnabled", "Auto-save enabled")}
             </Tag>
             <Text type="secondary">
-              {t(
-                "profile.autoSavesAfterChanges",
-                "Auto-saves after changes",
-              )}
+              {t("profile.autoSavesAfterChanges", "Auto-saves after changes")}
             </Text>
           </div>
         </div>
 
-        <Button type="primary" onClick={openModal}>
-          {t("profile.addOrUpdate", "Add / Update Attribute Value")}
-        </Button>
+        <Space wrap>
+          <Button onClick={() => setIsSalesforceModalOpen(true)}>
+            {t("salesforce.submit", "Add to Salesforce")}
+          </Button>
+
+          <Button type="primary" onClick={openModal}>
+            {t("profile.addOrUpdate", "Add / Update Attribute Value")}
+          </Button>
+        </Space>
       </div>
 
-      <div className="responsive-toolbar responsive-toolbar--actions" style={{ marginBottom: 16 }}>
+      <div
+        className="responsive-toolbar responsive-toolbar--actions"
+        style={{ marginBottom: 16 }}
+      >
         <Text className="responsive-toolbar__meta" type="secondary">
           {t("common.selected", "Selected")}: {selectedRowKeys.length}
         </Text>
@@ -677,7 +696,11 @@ export function CandidateProfilePage({ user }) {
         pagination={false}
         scroll={!screens.lg ? { x: 900 } : undefined}
       />
-
+      <SalesforceExportModal
+        open={isSalesforceModalOpen}
+        user={user}
+        onClose={() => setIsSalesforceModalOpen(false)}
+      />
       <Modal
         className="responsive-modal"
         title={t("profile.addOrUpdate", "Add / Update Attribute Value")}
@@ -712,7 +735,10 @@ export function CandidateProfilePage({ user }) {
           >
             <Select
               showSearch
-              placeholder={t("profile.attributePlaceholder", "Select attribute")}
+              placeholder={t(
+                "profile.attributePlaceholder",
+                "Select attribute",
+              )}
               optionFilterProp="label"
               onChange={(value) => {
                 resetAutoSaveState();

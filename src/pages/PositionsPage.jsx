@@ -426,6 +426,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
     mutationFn: createCv,
     onSuccess: () => {
       message.success(t("positions.cvCreated", "CV created successfully"));
+      setSelectedPositionIds([]);
     },
     onError: (error) => {
       if (error.response?.status === 409) {
