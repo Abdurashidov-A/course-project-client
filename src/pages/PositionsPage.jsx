@@ -33,6 +33,7 @@ import {
   canViewPublishedCvs,
 } from "../utils/roles";
 import { PositionDiscussion } from "../components/PositionDiscussion";
+import { OdooTokenModal } from "../components/OdooTokenModal";
 import { useI18n } from "../i18n/i18nContext";
 
 const { Title, Text } = Typography;
@@ -310,6 +311,7 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
+  const [isOdooTokenModalOpen, setIsOdooTokenModalOpen] = useState(false);
   const [selectedPositionIds, setSelectedPositionIds] = useState([]);
 
   const [form] = Form.useForm();
@@ -662,6 +664,19 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
             </Button>
           ) : null}
 
+          {showManagePositions ? (
+            <Button
+              disabled={selectedPositionIds.length !== 1}
+              onClick={() => {
+                if (!selectedPosition) return;
+
+                setIsOdooTokenModalOpen(true);
+              }}
+            >
+              {t("positions.odooToken", "Odoo Token")}
+            </Button>
+          ) : null}
+
           <Button
             disabled={selectedPositionIds.length !== 1}
             onClick={() => {
@@ -739,6 +754,15 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
         positionTitle={selectedPosition?.title}
         onClose={() => setIsDiscussionOpen(false)}
       />
+
+      {showManagePositions ? (
+        <OdooTokenModal
+          key={selectedPosition?.id || "odoo-token"}
+          open={isOdooTokenModalOpen}
+          position={selectedPosition}
+          onClose={() => setIsOdooTokenModalOpen(false)}
+        />
+      ) : null}
 
       {showManagePositions ? (
         <Modal
