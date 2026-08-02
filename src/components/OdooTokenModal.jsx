@@ -6,25 +6,27 @@ import {
   Input,
   Modal,
   Space,
-  Spin,
   Tag,
   Typography,
   message,
 } from "antd";
-import { useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useReducer, useRef } from "react";
 import {
   generatePositionOdooToken,
   getPositionOdooToken,
   revokePositionOdooToken,
 } from "../api/odooApi";
+import {
+  getOdooManagementErrorDetails,
+  normalizeOdooManagementCredential,
+} from "../api/odooManagementRequest";
 import { useI18n } from "../i18n/i18nContext";
+import {
+  createInitialOdooTokenState,
+  odooTokenReducer,
+} from "./odooTokenState";
 
 const { Text } = Typography;
-
-function getTokenQueryKey(positionId) {
-  return ["position-odoo-token", positionId];
-}
 
 function formatDate(value, fallback) {
   if (!value) {
@@ -38,61 +40,131 @@ function formatDate(value, fallback) {
 
 export function OdooTokenModal({ open, position, onClose }) {
   const { t } = useI18n();
-  const queryClient = useQueryClient();
   const mutationLockRef = useRef(false);
-  const [rawToken, setRawToken] = useState(null);
+  const confirmDialogRef = useRef(null);
+  const [state, dispatch] = useReducer(
+    odooTokenReducer,
+    undefined,
+    createInitialOdooTokenState,
+  );
+  const {
+    managementCredential,
+    token,
+    rawToken,
+    hasLoadedToken,
+    loadError,
+    pendingAction,
+  } = state;
   const positionId = position?.id;
-  const queryKey = getTokenQueryKey(positionId);
+  const normalizedCredential = normalizeOdooManagementCredential(
+    managementCredential,
+  );
+  const hasCredential = Boolean(normalizedCredential);
+  const isRequestPending = Boolean(pendingAction);
+  const isLoadingToken = pendingAction === "load";
+  const mutationControlsDisabled =
+    isRequestPending || !positionId || !hasCredential || !hasLoadedToken;
 
-  const tokenQuery = useQuery({
-    queryKey,
-    queryFn: () => getPositionOdooToken(positionId),
-    enabled: Boolean(open && positionId),
-    retry: false,
-  });
+  function getSafeManagementErrorMessage(error) {
+    const details = getOdooManagementErrorDetails(error);
 
-  async function handleMutationError(error, requestedPositionId) {
+    return t(details.key, details.fallback);
+  }
+
+  async function refreshToken(requestedPositionId, credential) {
+    try {
+      const response = await getPositionOdooToken(
+        requestedPositionId,
+        credential,
+      );
+      dispatch({
+        type: "LOAD_SUCCESS",
+        token: response.token || null,
+      });
+    } catch (error) {
+      dispatch({
+        type: "LOAD_ERROR",
+        message: getSafeManagementErrorMessage(error),
+      });
+    }
+  }
+
+  async function handleMutationError(
+    error,
+    requestedPositionId,
+    credential,
+  ) {
     if (error.response?.status === 409) {
-      setRawToken(null);
       message.warning(
         t(
           "odooToken.versionConflict",
           "Odoo token was changed elsewhere. Refreshing its current state.",
         ),
       );
-      await queryClient.invalidateQueries({
-        queryKey: getTokenQueryKey(requestedPositionId),
-      });
+      await refreshToken(requestedPositionId, credential);
       return;
     }
 
-    message.error(
-      t("odooToken.managementError", "Failed to manage the Odoo token"),
-    );
+    dispatch({ type: "REQUEST_ERROR" });
+    message.error(getSafeManagementErrorMessage(error));
   }
 
-  const generateMutation = useMutation({
-    mutationFn: async ({ requestedPositionId, version }) => {
-      const response = await generatePositionOdooToken(
-        requestedPositionId,
-        version,
-      );
-      setRawToken(
-        typeof response.rawToken === "string" ? response.rawToken : null,
-      );
+  async function loadToken() {
+    if (!positionId || !hasCredential || mutationLockRef.current) {
+      return;
+    }
 
-      return {
-        positionId: response.positionId,
-        token: response.token,
-      };
-    },
-    onSuccess: (safeResponse, variables) => {
-      queryClient.setQueryData(
-        getTokenQueryKey(safeResponse.positionId),
-        safeResponse,
+    mutationLockRef.current = true;
+    dispatch({ type: "REQUEST_START", actionName: "load" });
+
+    try {
+      const response = await getPositionOdooToken(
+        positionId,
+        normalizedCredential,
       );
+      dispatch({
+        type: "LOAD_SUCCESS",
+        token: response.token || null,
+      });
+    } catch (error) {
+      dispatch({
+        type: "LOAD_ERROR",
+        message: getSafeManagementErrorMessage(error),
+      });
+    } finally {
+      mutationLockRef.current = false;
+    }
+  }
+
+  async function startGenerate(version, isRegeneration, onSettled) {
+    if (
+      !positionId ||
+      !hasCredential ||
+      !hasLoadedToken ||
+      mutationLockRef.current
+    ) {
+      onSettled?.();
+      return;
+    }
+
+    const credential = normalizedCredential;
+    mutationLockRef.current = true;
+    dispatch({ type: "REQUEST_START", actionName: "generate" });
+
+    try {
+      const response = await generatePositionOdooToken(
+        positionId,
+        version,
+        credential,
+      );
+      dispatch({
+        type: "MUTATION_SUCCESS",
+        token: response.token || null,
+        rawToken:
+          typeof response.rawToken === "string" ? response.rawToken : null,
+      });
       message.success(
-        variables.isRegeneration
+        isRegeneration
           ? t(
               "odooToken.regenerateSuccess",
               "Odoo token regenerated successfully",
@@ -102,87 +174,59 @@ export function OdooTokenModal({ open, position, onClose }) {
               "Odoo token generated successfully",
             ),
       );
-    },
-    onError: (error, variables) =>
-      handleMutationError(error, variables.requestedPositionId),
-  });
+    } catch (error) {
+      await handleMutationError(error, positionId, credential);
+    } finally {
+      mutationLockRef.current = false;
+      onSettled?.();
+    }
+  }
 
-  const revokeMutation = useMutation({
-    mutationFn: ({ requestedPositionId, version }) =>
-      revokePositionOdooToken(requestedPositionId, version),
-    onSuccess: (safeResponse) => {
-      setRawToken(null);
-      queryClient.setQueryData(
-        getTokenQueryKey(safeResponse.positionId),
-        safeResponse,
+  async function startRevoke(version, onSettled) {
+    if (
+      !positionId ||
+      !hasCredential ||
+      !hasLoadedToken ||
+      mutationLockRef.current
+    ) {
+      onSettled?.();
+      return;
+    }
+
+    const credential = normalizedCredential;
+    mutationLockRef.current = true;
+    dispatch({ type: "REQUEST_START", actionName: "revoke" });
+
+    try {
+      const response = await revokePositionOdooToken(
+        positionId,
+        version,
+        credential,
       );
+      dispatch({
+        type: "MUTATION_SUCCESS",
+        token: response.token || null,
+        rawToken: null,
+      });
       message.success(
         t("odooToken.revokeSuccess", "Odoo token revoked successfully"),
       );
-    },
-    onError: (error, variables) =>
-      handleMutationError(error, variables.requestedPositionId),
-  });
-
-  const token = tokenQuery.data?.token || null;
-  const isMutationPending =
-    generateMutation.isPending || revokeMutation.isPending;
-  const mutationControlsDisabled =
-    isMutationPending || tokenQuery.isFetching || !positionId;
-
-  function startGenerate(version, isRegeneration, onSettled) {
-    if (!positionId || mutationLockRef.current) {
+    } catch (error) {
+      await handleMutationError(error, positionId, credential);
+    } finally {
+      mutationLockRef.current = false;
       onSettled?.();
-      return;
     }
-
-    mutationLockRef.current = true;
-    setRawToken(null);
-    generateMutation.mutate(
-      {
-        requestedPositionId: positionId,
-        version,
-        isRegeneration,
-      },
-      {
-        onSettled: () => {
-          mutationLockRef.current = false;
-          onSettled?.();
-        },
-      },
-    );
-  }
-
-  function startRevoke(version, onSettled) {
-    if (!positionId || mutationLockRef.current) {
-      onSettled?.();
-      return;
-    }
-
-    mutationLockRef.current = true;
-    setRawToken(null);
-    revokeMutation.mutate(
-      {
-        requestedPositionId: positionId,
-        version,
-      },
-      {
-        onSettled: () => {
-          mutationLockRef.current = false;
-          onSettled?.();
-        },
-      },
-    );
   }
 
   function handleClose() {
-    if (mutationLockRef.current || isMutationPending) {
+    if (mutationLockRef.current || isRequestPending) {
       return;
     }
 
-    setRawToken(null);
-    generateMutation.reset();
-    revokeMutation.reset();
+    confirmDialogRef.current?.destroy();
+    confirmDialogRef.current = null;
+    dispatch({ type: "CLOSE" });
     onClose();
   }
 
@@ -191,7 +235,7 @@ export function OdooTokenModal({ open, position, onClose }) {
       return;
     }
 
-    Modal.confirm({
+    confirmDialogRef.current = Modal.confirm({
       title: t(
         "odooToken.regenerateConfirmTitle",
         "Regenerate Odoo token?",
@@ -204,8 +248,14 @@ export function OdooTokenModal({ open, position, onClose }) {
       cancelText: t("common.cancel", "Cancel"),
       onOk: () =>
         new Promise((resolve) => {
-          startGenerate(token.version, true, resolve);
+          startGenerate(token.version, true, () => {
+            confirmDialogRef.current = null;
+            resolve();
+          });
         }),
+      onCancel: () => {
+        confirmDialogRef.current = null;
+      },
     });
   }
 
@@ -214,7 +264,7 @@ export function OdooTokenModal({ open, position, onClose }) {
       return;
     }
 
-    Modal.confirm({
+    confirmDialogRef.current = Modal.confirm({
       title: t("odooToken.revokeConfirmTitle", "Revoke Odoo token?"),
       content: t(
         "odooToken.revokeConfirmText",
@@ -225,8 +275,14 @@ export function OdooTokenModal({ open, position, onClose }) {
       cancelText: t("common.cancel", "Cancel"),
       onOk: () =>
         new Promise((resolve) => {
-          startRevoke(token.version, resolve);
+          startRevoke(token.version, () => {
+            confirmDialogRef.current = null;
+            resolve();
+          });
         }),
+      onCancel: () => {
+        confirmDialogRef.current = null;
+      },
     });
   }
 
@@ -300,124 +356,179 @@ export function OdooTokenModal({ open, position, onClose }) {
       title={`${t("odooToken.title", "Odoo token management")}: ${position?.title || unavailableText}`}
       open={open}
       onCancel={handleClose}
-      closable={!isMutationPending}
-      maskClosable={!isMutationPending}
-      keyboard={!isMutationPending}
+      closable={!isRequestPending}
+      maskClosable={!isRequestPending}
+      keyboard={!isRequestPending}
       destroyOnHidden
       footer={
-        <Button disabled={isMutationPending} onClick={handleClose}>
+        <Button disabled={isRequestPending} onClick={handleClose}>
           {t("odooToken.close", "Close")}
         </Button>
       }
       width={600}
     >
-      {tokenQuery.isLoading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
-          <Spin tip={t("odooToken.loading", "Loading Odoo token")} />
-        </div>
-      ) : tokenQuery.isError ? (
-        <Alert
-          type="error"
-          showIcon
-          message={t("odooToken.loadError", "Failed to load the Odoo token")}
-          action={
-            <Button
-              size="small"
-              loading={tokenQuery.isFetching}
-              onClick={() => tokenQuery.refetch()}
-            >
-              {t("common.refresh", "Refresh")}
-            </Button>
-          }
-        />
-      ) : (
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          {rawToken ? (
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              <Alert
-                type="warning"
-                showIcon
-                message={t(
-                  "odooToken.shownOnceTitle",
-                  "Save this token now",
-                )}
-                description={t(
-                  "odooToken.shownOnceText",
-                  "This token is shown only once. After closing this window, it cannot be recovered.",
-                )}
-              />
-              <Input.TextArea
-                value={rawToken}
-                readOnly
-                autoSize={{ minRows: 2, maxRows: 4 }}
-                spellCheck={false}
-              />
-              <Button onClick={copyToken}>
-                {t("odooToken.copy", "Copy Token")}
-              </Button>
-            </Space>
-          ) : null}
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Space direction="vertical" size="small" style={{ width: "100%" }}>
+          <Text strong>
+            {t(
+              "odooToken.managementCredential",
+              "Management Credential",
+            )}
+          </Text>
+          <Input.Password
+            value={managementCredential}
+            autoComplete="off"
+            disabled={isRequestPending}
+            placeholder={t(
+              "odooToken.managementCredentialPlaceholder",
+              "Enter the server management credential",
+            )}
+            onChange={(event) =>
+              dispatch({ type: "SET_CREDENTIAL", value: event.target.value })
+            }
+            onPressEnter={loadToken}
+          />
+          <Text type="secondary">
+            {t(
+              "odooToken.managementCredentialHelp",
+              "This server credential authorizes token management. It is different from the generated position API token.",
+            )}
+          </Text>
+          <Button
+            loading={isLoadingToken}
+            disabled={isRequestPending || !positionId || !hasCredential}
+            onClick={loadToken}
+          >
+            {t("odooToken.loadStatus", "Load Token Status")}
+          </Button>
+        </Space>
 
-          {!token ? (
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={t(
-                  "odooToken.noToken",
-                  "No Odoo token has been generated for this position",
-                )}
-              />
-              <Text type="secondary">
-                {t(
-                  "odooToken.noTokenDescription",
-                  "Generate a dedicated token to let Odoo read this position's published CV statistics.",
-                )}
-              </Text>
+        {loadError ? (
+          <Alert
+            type="error"
+            showIcon
+            message={loadError}
+            action={
               <Button
-                type="primary"
-                loading={generateMutation.isPending}
-                disabled={mutationControlsDisabled}
-                onClick={() => startGenerate(undefined, false)}
+                size="small"
+                loading={isLoadingToken}
+                disabled={!hasCredential || isRequestPending}
+                onClick={loadToken}
               >
-                {t("odooToken.generate", "Generate Token")}
+                {t("common.refresh", "Refresh")}
               </Button>
-            </Space>
-          ) : (
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              <Descriptions column={1} size="small" items={tokenItems} />
+            }
+          />
+        ) : !hasLoadedToken ? (
+          <Alert
+            type="info"
+            showIcon
+            message={t(
+              "odooToken.credentialRequired",
+              "Enter the management credential to load token status",
+            )}
+          />
+        ) : (
+          <>
+            {rawToken ? (
+              <Space
+                direction="vertical"
+                size="middle"
+                style={{ width: "100%" }}
+              >
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={t(
+                    "odooToken.shownOnceTitle",
+                    "Save this token now",
+                  )}
+                  description={t(
+                    "odooToken.shownOnceText",
+                    "This token is shown only once. After closing this window, it cannot be recovered.",
+                  )}
+                />
+                <Input.TextArea
+                  value={rawToken}
+                  readOnly
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                  spellCheck={false}
+                />
+                <Button onClick={copyToken}>
+                  {t("odooToken.copy", "Copy Token")}
+                </Button>
+              </Space>
+            ) : null}
 
-              {token.status === "ACTIVE" ? (
-                <Space wrap>
-                  <Button
-                    loading={generateMutation.isPending}
-                    disabled={mutationControlsDisabled}
-                    onClick={confirmRegeneration}
-                  >
-                    {t("odooToken.regenerate", "Regenerate Token")}
-                  </Button>
-                  <Button
-                    danger
-                    loading={revokeMutation.isPending}
-                    disabled={mutationControlsDisabled}
-                    onClick={confirmRevoke}
-                  >
-                    {t("odooToken.revoke", "Revoke Token")}
-                  </Button>
-                </Space>
-              ) : (
+            {!token ? (
+              <Space
+                direction="vertical"
+                size="middle"
+                style={{ width: "100%" }}
+              >
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t(
+                    "odooToken.noToken",
+                    "No Odoo token has been generated for this position",
+                  )}
+                />
+                <Text type="secondary">
+                  {t(
+                    "odooToken.noTokenDescription",
+                    "Generate a dedicated token to let Odoo read this position's published CV statistics.",
+                  )}
+                </Text>
                 <Button
                   type="primary"
-                  loading={generateMutation.isPending}
+                  loading={pendingAction === "generate"}
                   disabled={mutationControlsDisabled}
-                  onClick={() => startGenerate(token.version, true)}
+                  onClick={() => startGenerate(undefined, false)}
                 >
-                  {t("odooToken.generateNew", "Generate New Token")}
+                  {t("odooToken.generate", "Generate Token")}
                 </Button>
-              )}
-            </Space>
-          )}
-        </Space>
-      )}
+              </Space>
+            ) : (
+              <Space
+                direction="vertical"
+                size="middle"
+                style={{ width: "100%" }}
+              >
+                <Descriptions column={1} size="small" items={tokenItems} />
+
+                {token.status === "ACTIVE" ? (
+                  <Space wrap>
+                    <Button
+                      loading={pendingAction === "generate"}
+                      disabled={mutationControlsDisabled}
+                      onClick={confirmRegeneration}
+                    >
+                      {t("odooToken.regenerate", "Regenerate Token")}
+                    </Button>
+                    <Button
+                      danger
+                      loading={pendingAction === "revoke"}
+                      disabled={mutationControlsDisabled}
+                      onClick={confirmRevoke}
+                    >
+                      {t("odooToken.revoke", "Revoke Token")}
+                    </Button>
+                  </Space>
+                ) : (
+                  <Button
+                    type="primary"
+                    loading={pendingAction === "generate"}
+                    disabled={mutationControlsDisabled}
+                    onClick={() => startGenerate(token.version, true)}
+                  >
+                    {t("odooToken.generateNew", "Generate New Token")}
+                  </Button>
+                )}
+              </Space>
+            )}
+          </>
+        )}
+      </Space>
     </Modal>
   );
 }

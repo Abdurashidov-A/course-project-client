@@ -224,6 +224,16 @@ export const translations = {
     "positions.projectTagsPlaceholder": "Add project tags",
     "positions.attributesPlaceholder": "Select attributes for this position",
     "odooToken.title": "Odoo token management",
+    "odooToken.managementCredential": "Management Credential",
+    "odooToken.managementCredentialPlaceholder":
+      "Enter the server management credential",
+    "odooToken.managementCredentialHelp":
+      "This server credential authorizes token management. It is different from the generated position API token.",
+    "odooToken.loadStatus": "Load Token Status",
+    "odooToken.credentialRequired":
+      "Enter the management credential to load token status",
+    "odooToken.invalidCredential": "Invalid management credential",
+    "odooToken.notConfigured": "Odoo management API is not configured",
     "odooToken.status": "Status",
     "odooToken.noToken": "No Odoo token has been generated for this position",
     "odooToken.noTokenDescription":
@@ -726,6 +736,16 @@ export const translations = {
     "positions.attributesPlaceholder":
       "Ushbu pozitsiya uchun atributlarni tanlang",
     "odooToken.title": "Odoo tokenini boshqarish",
+    "odooToken.managementCredential": "Boshqaruv maxfiy kaliti",
+    "odooToken.managementCredentialPlaceholder":
+      "Server boshqaruv maxfiy kalitini kiriting",
+    "odooToken.managementCredentialHelp":
+      "Bu server maxfiy kaliti tokenni boshqarishga ruxsat beradi. U yaratiladigan pozitsiya API tokenidan farq qiladi.",
+    "odooToken.loadStatus": "Token holatini yuklash",
+    "odooToken.credentialRequired":
+      "Token holatini yuklash uchun boshqaruv maxfiy kalitini kiriting",
+    "odooToken.invalidCredential": "Boshqaruv maxfiy kaliti noto‘g‘ri",
+    "odooToken.notConfigured": "Odoo boshqaruv API sozlanmagan",
     "odooToken.status": "Holat",
     "odooToken.noToken": "Bu pozitsiya uchun Odoo tokeni hali yaratilmagan",
     "odooToken.noTokenDescription":
