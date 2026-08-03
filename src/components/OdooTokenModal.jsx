@@ -10,16 +10,13 @@ import {
   Typography,
   message,
 } from "antd";
-import { useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import {
   generatePositionOdooToken,
   getPositionOdooToken,
   revokePositionOdooToken,
 } from "../api/odooApi";
-import {
-  getOdooManagementErrorDetails,
-  normalizeOdooManagementCredential,
-} from "../api/odooManagementRequest";
+import { getOdooManagementErrorDetails } from "../api/odooManagementRequest";
 import { useI18n } from "../i18n/i18nContext";
 import {
   createInitialOdooTokenState,
@@ -41,6 +38,7 @@ function formatDate(value, fallback) {
 export function OdooTokenModal({ open, position, onClose }) {
   const { t } = useI18n();
   const mutationLockRef = useRef(false);
+  const loadSequenceRef = useRef(0);
   const confirmDialogRef = useRef(null);
   const [state, dispatch] = useReducer(
     odooTokenReducer,
@@ -48,7 +46,6 @@ export function OdooTokenModal({ open, position, onClose }) {
     createInitialOdooTokenState,
   );
   const {
-    managementCredential,
     token,
     rawToken,
     hasLoadedToken,
@@ -56,27 +53,72 @@ export function OdooTokenModal({ open, position, onClose }) {
     pendingAction,
   } = state;
   const positionId = position?.id;
-  const normalizedCredential = normalizeOdooManagementCredential(
-    managementCredential,
-  );
-  const hasCredential = Boolean(normalizedCredential);
   const isRequestPending = Boolean(pendingAction);
   const isLoadingToken = pendingAction === "load";
   const mutationControlsDisabled =
-    isRequestPending || !positionId || !hasCredential || !hasLoadedToken;
+    isRequestPending || !positionId || !hasLoadedToken;
 
-  function getSafeManagementErrorMessage(error) {
-    const details = getOdooManagementErrorDetails(error);
+  const getSafeManagementErrorMessage = useCallback(
+    (error) => {
+      const details = getOdooManagementErrorDetails(error);
 
-    return t(details.key, details.fallback);
-  }
+      return t(details.key, details.fallback);
+    },
+    [t],
+  );
 
-  async function refreshToken(requestedPositionId, credential) {
+  const loadToken = useCallback(
+    async (requestedPositionId) => {
+      if (!requestedPositionId || mutationLockRef.current) {
+        return;
+      }
+
+      const requestSequence = loadSequenceRef.current + 1;
+      loadSequenceRef.current = requestSequence;
+      mutationLockRef.current = true;
+      dispatch({ type: "REQUEST_START", actionName: "load" });
+
+      try {
+        const response = await getPositionOdooToken(requestedPositionId);
+
+        if (loadSequenceRef.current === requestSequence) {
+          dispatch({
+            type: "LOAD_SUCCESS",
+            token: response.token || null,
+          });
+        }
+      } catch (error) {
+        if (loadSequenceRef.current === requestSequence) {
+          dispatch({
+            type: "LOAD_ERROR",
+            message: getSafeManagementErrorMessage(error),
+          });
+        }
+      } finally {
+        if (loadSequenceRef.current === requestSequence) {
+          mutationLockRef.current = false;
+        }
+      }
+    },
+    [getSafeManagementErrorMessage],
+  );
+
+  useEffect(() => {
+    if (!open || !positionId) {
+      return undefined;
+    }
+
+    void loadToken(positionId);
+
+    return () => {
+      loadSequenceRef.current += 1;
+      mutationLockRef.current = false;
+    };
+  }, [loadToken, open, positionId]);
+
+  async function refreshToken(requestedPositionId) {
     try {
-      const response = await getPositionOdooToken(
-        requestedPositionId,
-        credential,
-      );
+      const response = await getPositionOdooToken(requestedPositionId);
       dispatch({
         type: "LOAD_SUCCESS",
         token: response.token || null,
@@ -92,7 +134,6 @@ export function OdooTokenModal({ open, position, onClose }) {
   async function handleMutationError(
     error,
     requestedPositionId,
-    credential,
   ) {
     if (error.response?.status === 409) {
       message.warning(
@@ -101,7 +142,7 @@ export function OdooTokenModal({ open, position, onClose }) {
           "Odoo token was changed elsewhere. Refreshing its current state.",
         ),
       );
-      await refreshToken(requestedPositionId, credential);
+      await refreshToken(requestedPositionId);
       return;
     }
 
@@ -109,37 +150,9 @@ export function OdooTokenModal({ open, position, onClose }) {
     message.error(getSafeManagementErrorMessage(error));
   }
 
-  async function loadToken() {
-    if (!positionId || !hasCredential || mutationLockRef.current) {
-      return;
-    }
-
-    mutationLockRef.current = true;
-    dispatch({ type: "REQUEST_START", actionName: "load" });
-
-    try {
-      const response = await getPositionOdooToken(
-        positionId,
-        normalizedCredential,
-      );
-      dispatch({
-        type: "LOAD_SUCCESS",
-        token: response.token || null,
-      });
-    } catch (error) {
-      dispatch({
-        type: "LOAD_ERROR",
-        message: getSafeManagementErrorMessage(error),
-      });
-    } finally {
-      mutationLockRef.current = false;
-    }
-  }
-
   async function startGenerate(version, isRegeneration, onSettled) {
     if (
       !positionId ||
-      !hasCredential ||
       !hasLoadedToken ||
       mutationLockRef.current
     ) {
@@ -147,7 +160,6 @@ export function OdooTokenModal({ open, position, onClose }) {
       return;
     }
 
-    const credential = normalizedCredential;
     mutationLockRef.current = true;
     dispatch({ type: "REQUEST_START", actionName: "generate" });
 
@@ -155,7 +167,6 @@ export function OdooTokenModal({ open, position, onClose }) {
       const response = await generatePositionOdooToken(
         positionId,
         version,
-        credential,
       );
       dispatch({
         type: "MUTATION_SUCCESS",
@@ -175,7 +186,7 @@ export function OdooTokenModal({ open, position, onClose }) {
             ),
       );
     } catch (error) {
-      await handleMutationError(error, positionId, credential);
+      await handleMutationError(error, positionId);
     } finally {
       mutationLockRef.current = false;
       onSettled?.();
@@ -185,7 +196,6 @@ export function OdooTokenModal({ open, position, onClose }) {
   async function startRevoke(version, onSettled) {
     if (
       !positionId ||
-      !hasCredential ||
       !hasLoadedToken ||
       mutationLockRef.current
     ) {
@@ -193,7 +203,6 @@ export function OdooTokenModal({ open, position, onClose }) {
       return;
     }
 
-    const credential = normalizedCredential;
     mutationLockRef.current = true;
     dispatch({ type: "REQUEST_START", actionName: "revoke" });
 
@@ -201,7 +210,6 @@ export function OdooTokenModal({ open, position, onClose }) {
       const response = await revokePositionOdooToken(
         positionId,
         version,
-        credential,
       );
       dispatch({
         type: "MUTATION_SUCCESS",
@@ -212,7 +220,7 @@ export function OdooTokenModal({ open, position, onClose }) {
         t("odooToken.revokeSuccess", "Odoo token revoked successfully"),
       );
     } catch (error) {
-      await handleMutationError(error, positionId, credential);
+      await handleMutationError(error, positionId);
     } finally {
       mutationLockRef.current = false;
       onSettled?.();
@@ -368,41 +376,6 @@ export function OdooTokenModal({ open, position, onClose }) {
       width={600}
     >
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        <Space direction="vertical" size="small" style={{ width: "100%" }}>
-          <Text strong>
-            {t(
-              "odooToken.managementCredential",
-              "Management Credential",
-            )}
-          </Text>
-          <Input.Password
-            value={managementCredential}
-            autoComplete="off"
-            disabled={isRequestPending}
-            placeholder={t(
-              "odooToken.managementCredentialPlaceholder",
-              "Enter the server management credential",
-            )}
-            onChange={(event) =>
-              dispatch({ type: "SET_CREDENTIAL", value: event.target.value })
-            }
-            onPressEnter={loadToken}
-          />
-          <Text type="secondary">
-            {t(
-              "odooToken.managementCredentialHelp",
-              "This server credential authorizes token management. It is different from the generated position API token.",
-            )}
-          </Text>
-          <Button
-            loading={isLoadingToken}
-            disabled={isRequestPending || !positionId || !hasCredential}
-            onClick={loadToken}
-          >
-            {t("odooToken.loadStatus", "Load Token Status")}
-          </Button>
-        </Space>
-
         {loadError ? (
           <Alert
             type="error"
@@ -412,8 +385,8 @@ export function OdooTokenModal({ open, position, onClose }) {
               <Button
                 size="small"
                 loading={isLoadingToken}
-                disabled={!hasCredential || isRequestPending}
-                onClick={loadToken}
+                disabled={!positionId || isRequestPending}
+                onClick={() => loadToken(positionId)}
               >
                 {t("common.refresh", "Refresh")}
               </Button>
@@ -424,8 +397,8 @@ export function OdooTokenModal({ open, position, onClose }) {
             type="info"
             showIcon
             message={t(
-              "odooToken.credentialRequired",
-              "Enter the management credential to load token status",
+              "odooToken.loading",
+              "Loading Odoo token",
             )}
           />
         ) : (

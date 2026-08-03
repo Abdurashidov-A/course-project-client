@@ -1,6 +1,5 @@
 export function createInitialOdooTokenState() {
   return {
-    managementCredential: "",
     token: null,
     rawToken: null,
     hasLoadedToken: false,
@@ -11,11 +10,6 @@ export function createInitialOdooTokenState() {
 
 export function odooTokenReducer(state, action) {
   switch (action.type) {
-    case "SET_CREDENTIAL":
-      return {
-        ...createInitialOdooTokenState(),
-        managementCredential: action.value,
-      };
     case "REQUEST_START":
       return {
         ...state,
