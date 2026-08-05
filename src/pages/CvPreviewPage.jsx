@@ -208,7 +208,7 @@ function renderValueInput(attribute, t) {
   return <Input placeholder={t("profile.value", "Value")} />;
 }
 
-export function CvPreviewPage({ cvId, onBack }) {
+export function CvPreviewPage({ cvId, onBack, onSupportPositionChange }) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -235,6 +235,12 @@ export function CvPreviewPage({ cvId, onBack }) {
   const canLike =
     (data?.viewerRole === "RECRUITER" || data?.viewerRole === "ADMIN") &&
     data?.status === "PUBLISHED";
+
+  useEffect(() => {
+    onSupportPositionChange?.(data?.position?.id || null);
+
+    return () => onSupportPositionChange?.(null);
+  }, [data?.position?.id, onSupportPositionChange]);
 
   const saveMutation = useMutation({
     mutationFn: ({ attributeId, payload }) =>

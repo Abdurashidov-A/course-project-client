@@ -14,6 +14,28 @@ export const translations = {
     "header.theme": "Theme",
     "header.language": "Language",
     "header.logout": "Logout",
+    "supportTicket.help": "Help",
+    "supportTicket.create": "Create support ticket",
+    "supportTicket.summary": "Summary",
+    "supportTicket.summaryPlaceholder": "Describe the problem you need help with",
+    "supportTicket.summaryRequired": "Please enter a summary",
+    "supportTicket.summaryLength": "Summary must contain 5 to 2000 characters",
+    "supportTicket.priority": "Priority",
+    "supportTicket.priorityHigh": "High",
+    "supportTicket.priorityAverage": "Average",
+    "supportTicket.priorityLow": "Low",
+    "supportTicket.submit": "Submit ticket",
+    "supportTicket.submitting": "Submitting ticket...",
+    "supportTicket.success": "Support ticket submitted successfully",
+    "supportTicket.invalidRequest": "Please check the support ticket details",
+    "supportTicket.authenticationRequired":
+      "Please sign in again to submit a support ticket",
+    "supportTicket.forbidden":
+      "Support ticket submission is not available for this account",
+    "supportTicket.serviceUnavailable":
+      "Support service is temporarily unavailable",
+    "supportTicket.networkError":
+      "Could not submit the support ticket. Please try again.",
     "guest.guest": "Guest",
     "guest.publicDashboard": "Public Dashboard",
     "guest.publicPositions": "Public Positions",
@@ -513,6 +535,29 @@ export const translations = {
     "header.theme": "Mavzu",
     "header.language": "Til",
     "header.logout": "Chiqish",
+    "supportTicket.help": "Yordam",
+    "supportTicket.create": "Yordam so‘rovini yaratish",
+    "supportTicket.summary": "Qisqacha mazmun",
+    "supportTicket.summaryPlaceholder": "Yordam kerak bo‘lgan muammoni tasvirlang",
+    "supportTicket.summaryRequired": "Qisqacha mazmunni kiriting",
+    "supportTicket.summaryLength":
+      "Qisqacha mazmun 5 dan 2000 tagacha belgidan iborat bo‘lishi kerak",
+    "supportTicket.priority": "Muhimlik darajasi",
+    "supportTicket.priorityHigh": "Yuqori",
+    "supportTicket.priorityAverage": "O‘rtacha",
+    "supportTicket.priorityLow": "Past",
+    "supportTicket.submit": "So‘rovni yuborish",
+    "supportTicket.submitting": "So‘rov yuborilmoqda...",
+    "supportTicket.success": "Yordam so‘rovi muvaffaqiyatli yuborildi",
+    "supportTicket.invalidRequest": "Yordam so‘rovi ma’lumotlarini tekshiring",
+    "supportTicket.authenticationRequired":
+      "Yordam so‘rovini yuborish uchun qayta kiring",
+    "supportTicket.forbidden":
+      "Bu hisob uchun yordam so‘rovini yuborish mavjud emas",
+    "supportTicket.serviceUnavailable":
+      "Yordam xizmati vaqtincha ishlamayapti",
+    "supportTicket.networkError":
+      "Yordam so‘rovini yuborib bo‘lmadi. Qayta urinib ko‘ring.",
     "guest.guest": "Mehmon",
     "guest.publicDashboard": "Ommaviy dashboard",
     "guest.publicPositions": "Ommaviy pozitsiyalar",

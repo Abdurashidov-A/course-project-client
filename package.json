@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "test:odoo": "node test/odooManagementRequest.test.js",
+    "test:support": "node test/supportTicket.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

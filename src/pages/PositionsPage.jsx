@@ -305,7 +305,11 @@ function AccessRulesEditor({ form, attributes, fieldName, t, isCompact }) {
   );
 }
 
-export function PositionsPage({ user, onViewPublishedCvs }) {
+export function PositionsPage({
+  user,
+  onViewPublishedCvs,
+  onSupportPositionChange,
+}) {
   const { t } = useI18n();
   const screens = Grid.useBreakpoint();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -460,6 +464,14 @@ export function PositionsPage({ user, onViewPublishedCvs }) {
   const selectedPosition = data.find(
     (position) => position.id === selectedPositionIds[0],
   );
+
+  useEffect(() => {
+    const positionId =
+      selectedPositionIds.length === 1 ? selectedPosition?.id || null : null;
+    onSupportPositionChange?.(positionId);
+
+    return () => onSupportPositionChange?.(null);
+  }, [onSupportPositionChange, selectedPosition?.id, selectedPositionIds.length]);
 
   const { data: attributes = [], isLoading: isAttributesLoading } = useQuery({
     queryKey: ["attributes"],

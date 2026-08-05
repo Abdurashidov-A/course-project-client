@@ -11,7 +11,7 @@ import {
   Typography,
   theme,
 } from "antd";
-import { MenuOutlined } from "@ant-design/icons";
+import { MenuOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/authContext";
@@ -27,6 +27,11 @@ import PagePlaceholder from "./components/PagePlaceholder";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { useI18n } from "./i18n/i18nContext";
+import { SupportTicketModal } from "./components/SupportTicketModal";
+import {
+  isSupportTicketsEnabled,
+  selectSupportPositionId,
+} from "./components/supportTicketState";
 
 function lazyNamedPage(importPage, exportName) {
   return lazy(() =>
@@ -322,6 +327,9 @@ export default function App() {
   const screens = Grid.useBreakpoint();
   const isMobileNav = !screens.lg && !!screens.xs;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSupportTicketOpen, setIsSupportTicketOpen] = useState(false);
+  const [supportTicketLink, setSupportTicketLink] = useState("");
+  const [pagePositionId, setPagePositionId] = useState(null);
   const routeState = getRouteState(location.pathname, location.search);
   const selectedPageKey = routeState.pageKey;
   const selectedCvId = routeState.cvId;
@@ -338,6 +346,23 @@ export default function App() {
         : "positions";
   const effectiveSelectedPageKey = selectedPageKey;
   const isLoginPage = isGuest && effectiveSelectedPageKey === "login";
+  const supportTicketsEnabled = isSupportTicketsEnabled(
+    import.meta.env.VITE_SUPPORT_TICKETS_ENABLED,
+  );
+  const supportRoutePositionId =
+    effectiveSelectedPageKey === "position-cvs" ||
+    (effectiveSelectedPageKey === "cv-preview" && selectedPositionId)
+      ? selectedPositionId
+      : null;
+  const supportPagePositionId = ["positions", "cv-preview"].includes(
+    effectiveSelectedPageKey,
+  )
+    ? pagePositionId
+    : null;
+  const supportPositionId = selectSupportPositionId({
+    routePositionId: supportRoutePositionId,
+    pagePositionId: supportPagePositionId,
+  });
   const menuSelectedKey =
     effectiveSelectedPageKey === "cv-preview"
       ? cvPreviewSource === "position-cvs"
@@ -420,6 +445,18 @@ export default function App() {
               ) : null}
 
               <div className="app-header__controls">
+                {!isGuest && supportTicketsEnabled ? (
+                  <Button
+                    icon={<QuestionCircleOutlined />}
+                    aria-label={t("supportTicket.help", "Help")}
+                    onClick={() => {
+                      setSupportTicketLink(window.location.href);
+                      setIsSupportTicketOpen(true);
+                    }}
+                  >
+                    {t("supportTicket.help", "Help")}
+                  </Button>
+                ) : null}
                 <div className="app-header__control-group">
                   <Text className="app-header-text">
                     {t("header.theme", "Theme")}
@@ -520,6 +557,7 @@ export default function App() {
                   ) : effectiveSelectedPageKey === "positions" ? (
                     <PositionsPage
                       user={user}
+                      onSupportPositionChange={setPagePositionId}
                       onViewPublishedCvs={(positionId) => {
                         navigate(getPositionCvsPath(positionId));
                       }}
@@ -557,6 +595,7 @@ export default function App() {
                   ) : effectiveSelectedPageKey === "cv-preview" ? (
                     <CvPreviewPage
                       cvId={selectedCvId}
+                      onSupportPositionChange={setPagePositionId}
                       onBack={() => {
                         if (
                           cvPreviewSource === "position-cvs" &&
@@ -582,6 +621,17 @@ export default function App() {
                 </Suspense>
               </Content>
             </Layout>
+            {!isGuest && supportTicketsEnabled ? (
+              <SupportTicketModal
+                open={isSupportTicketOpen}
+                onClose={() => {
+                  setIsSupportTicketOpen(false);
+                  setSupportTicketLink("");
+                }}
+                positionId={supportPositionId}
+                link={supportTicketLink}
+              />
+            ) : null}
           </Layout>
         )}
       </div>
